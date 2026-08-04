@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# aa-brightness — brightness keys with OSD (backend interface).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+usage() {
+    echo "Usage: $0 up|down" >&2
+    exit 2
+}
+
+backend_classic() {
+    case "${1:-}" in
+        up)   exec "$REPO/scripts/osd.sh" brightness-up ;;
+        down) exec "$REPO/scripts/osd.sh" brightness-down ;;
+        *)    usage ;;
+    esac
+}
+
+backend_noctalia() {
+    case "${1:-}" in
+        up)   noctalia msg brightness-up ;;
+        down) noctalia msg brightness-down ;;
+        *)    usage ;;
+    esac
+}
+
+aa_dispatch "$@"

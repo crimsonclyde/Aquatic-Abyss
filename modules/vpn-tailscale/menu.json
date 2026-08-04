@@ -1,0 +1,10 @@
+[
+  {
+    "menu": "quick-settings",
+    "type": "picker",
+    "icon": "󰖂",
+    "label": "VPN",
+    "title": "VPN Connections",
+    "emptyText": "No VPN providers found"
+  }
+]

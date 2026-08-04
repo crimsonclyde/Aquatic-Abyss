@@ -1,0 +1,10 @@
+[
+  {
+    "menu": "quick-settings",
+    "type": "picker",
+    "icon": "󰤨",
+    "label": "WiFi",
+    "title": "WiFi Networks",
+    "emptyText": "No WiFi networks found"
+  }
+]

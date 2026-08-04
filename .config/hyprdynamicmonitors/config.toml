@@ -1,0 +1,54 @@
+[general]
+destination = "$HOME/.cache/hyprdynamicmonitors/monitors.conf"
+
+[lid_events]
+
+[lid_events.dbus_query_object]
+destination = "org.freedesktop.UPower"
+path = "/org/freedesktop/UPower"
+method = "org.freedesktop.DBus.Properties.Get"
+expected_lid_closing_value = "true"
+
+[[lid_events.dbus_query_object.args]]
+arg = "org.freedesktop.UPower"
+
+[[lid_events.dbus_query_object.args]]
+arg = "LidIsClosed"
+
+[[lid_events.dbus_signal_match_rules]]
+interface = "org.freedesktop.DBus.Properties"
+object_path = "/org/freedesktop/UPower"
+member = "PropertiesChanged"
+
+[[lid_events.dbus_signal_receive_filters]]
+name = "org.freedesktop.DBus.Properties.PropertiesChanged"
+body = "LidIsClosed"
+
+[profiles.docked_lid_closed]
+config_file = "hyprconfigs/docked-lid-closed.conf"
+config_file_type = "static"
+
+[profiles.docked_lid_closed.conditions]
+lid_state = "Closed"
+
+[[profiles.docked_lid_closed.conditions.required_monitors]]
+name = "eDP-1"
+
+[[profiles.docked_lid_closed.conditions.required_monitors]]
+name = "^(DP|HDMI|USB|WL|DVI|VGA)-"
+match_name_using_regex = true
+monitor_tag = "external"
+
+[profiles.lid_open]
+config_file = "hyprconfigs/lid-open.conf"
+config_file_type = "static"
+
+[profiles.lid_open.conditions]
+lid_state = "Opened"
+
+[[profiles.lid_open.conditions.required_monitors]]
+name = "eDP-1"
+
+[fallback_profile]
+config_file = "hyprconfigs/fallback.conf"
+config_file_type = "static"

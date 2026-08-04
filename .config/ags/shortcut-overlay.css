@@ -1,0 +1,84 @@
+window.shortcut-window {
+    background: transparent;
+}
+
+.shortcut-panel {
+    padding: 14px;
+    min-width: 860px;
+    background: rgba(24, 28, 34, 0.96);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.40);
+}
+
+.shortcut-header {
+    margin-bottom: 2px;
+}
+
+.shortcut-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(244, 247, 251, 0.84);
+}
+
+.shortcut-close {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    background: transparent;
+    color: rgba(244, 247, 251, 0.66);
+    border-radius: 6px;
+}
+
+.shortcut-close:hover {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.shortcut-scroll {
+    min-height: 560px;
+}
+
+.shortcut-grid {
+    padding: 2px;
+}
+
+.shortcut-column {
+    min-width: 410px;
+}
+
+.shortcut-section {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 7px;
+}
+
+.shortcut-section-title {
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #33ccff;
+}
+
+.shortcut-row {
+    padding: 5px 0;
+}
+
+.shortcut-key {
+    min-width: 155px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(244, 247, 251, 0.92);
+}
+
+.shortcut-action {
+    font-size: 12px;
+    color: rgba(244, 247, 251, 0.74);
+}
+
+.shortcut-hint {
+    margin-top: 2px;
+    font-size: 11px;
+    color: rgba(244, 247, 251, 0.54);
+}

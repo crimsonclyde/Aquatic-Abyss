@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# aa-launcher — open the application launcher (backend interface).
+# Classic backend honours AA_MENU, like the SUPER + SPACE bind always did.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+usage() {
+    echo "Usage: $0" >&2
+    exit 2
+}
+
+backend_classic() {
+    [ $# -eq 0 ] || usage
+    exec bash -c "${AA_MENU:-wofi --show drun}"
+}
+
+backend_noctalia() {
+    [ $# -eq 0 ] || usage
+    noctalia msg panel-toggle launcher
+}
+
+aa_dispatch "$@"

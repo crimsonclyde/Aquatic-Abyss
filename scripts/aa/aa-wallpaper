@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# aa-wallpaper — wallpaper menu/set/random/rotation (backend interface).
+# Subcommands pass through to the backend's wallpaper tooling; default is menu.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+backend_classic() {
+    exec "$REPO/scripts/wallpaper_menu.sh" "$@"
+}
+
+backend_noctalia() {
+    case "${1:-menu}" in
+        menu)     noctalia msg panel-toggle wallpaper ;;
+        set)      shift; noctalia msg wallpaper-set "$@" ;;
+        random)   noctalia msg wallpaper-random ;;
+        next)     noctalia msg wallpaper-next ;;
+        previous) noctalia msg wallpaper-previous ;;
+        current)  noctalia msg wallpaper-get ;;
+        # rotate-*/list/preview stay with the classic tooling — return
+        # nonzero so dispatch falls back to wallpaper_menu.sh.
+        *)        return 1 ;;
+    esac
+}
+
+aa_dispatch "$@"

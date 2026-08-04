@@ -1,0 +1,9 @@
+[
+  {
+    "menu": "quick-settings",
+    "type": "button",
+    "icon": "󰓃",
+    "label": "Soundbar",
+    "action": "toggle"
+  }
+]

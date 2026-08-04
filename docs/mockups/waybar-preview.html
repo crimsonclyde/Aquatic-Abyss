@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acquatic Abyss Preview</title>
+  <style>
+    :root {
+      --bg: #141820;
+      --bar: #252a33;
+      --pill: rgba(63, 70, 82, 0.9);
+      --pill2: rgba(73, 82, 96, 0.96);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f4f7fb;
+      --muted: rgba(244, 247, 251, 0.68);
+      --blue: #33ccff;
+      --green: #7ee787;
+      --orange: #ffb86c;
+      --red: #eb4d4b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(51, 204, 255, 0.18), transparent 28%),
+        linear-gradient(135deg, #10141c 0%, #1d2630 52%, #12151d 100%);
+      color: var(--text);
+      font: 13px "JetBrains Mono", "JetBrainsMono Nerd Font", monospace;
+    }
+
+    .scene {
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.08), transparent 35%),
+        linear-gradient(135deg, #1d222b, #10141b);
+    }
+
+    .bar {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      background: var(--bar);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+    }
+
+    .group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .workspace {
+      min-width: 32px;
+      height: 30px;
+      padding: 0 8px;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      border-radius: 4px;
+    }
+
+    .workspace.active {
+      background: var(--blue);
+      color: #000;
+      font-weight: 700;
+    }
+
+    .window-title {
+      max-width: 360px;
+      color: var(--muted);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .clock,
+    .media,
+    .pill,
+    .power {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--pill);
+      padding: 0 11px;
+      gap: 8px;
+    }
+
+    .clock {
+      min-width: 78px;
+      background: var(--pill);
+      font-weight: 700;
+    }
+
+    .media {
+      background: #1f2335;
+      color: var(--muted);
+      max-width: 280px;
+    }
+
+    .pill.icon {
+      min-width: 34px;
+      justify-content: center;
+      padding: 0 9px;
+      color: #c7d0dd;
+    }
+
+    .pill.stats {
+      color: #9ddcff;
+    }
+
+    .pill.notice {
+      color: var(--text);
+    }
+
+    .power {
+      min-width: 44px;
+      justify-content: center;
+      color: #fff;
+      background: rgba(235, 77, 75, 0.18);
+      border-color: rgba(235, 77, 75, 0.35);
+      font-size: 16px;
+    }
+
+    .popup {
+      position: absolute;
+      top: 56px;
+      right: 10px;
+      width: 292px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(24, 28, 34, 0.96);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+      padding: 10px;
+    }
+
+    .calendar {
+      left: 50%;
+      right: auto;
+      width: 300px;
+      transform: translateX(-50%);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .calendar-date {
+      margin-bottom: 10px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      text-align: center;
+      color: #c7d0dd;
+    }
+
+    .calendar-month {
+      grid-column: 1 / -1;
+      margin-bottom: 2px;
+      color: var(--text);
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .calendar-weekday {
+      color: #9ddcff;
+      font-weight: 700;
+    }
+
+    .week {
+      color: #7d8796;
+    }
+
+    .today {
+      border-radius: 4px;
+      background: var(--blue);
+      color: #181c22;
+      font-weight: 700;
+    }
+
+    .window {
+      position: absolute;
+      left: 86px;
+      top: 146px;
+      width: 600px;
+      height: 376px;
+      overflow: hidden;
+      border: 2px solid rgba(51, 204, 255, 0.75);
+      border-radius: 10px;
+      background: rgba(18, 22, 30, 0.78);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+    }
+
+    .hyprbar {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      background: rgba(24, 28, 34, 0.95);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .hypr-buttons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hypr-button {
+      width: 12px;
+      height: 12px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      color: #181c22;
+      font-size: 8px;
+      line-height: 1;
+    }
+
+    .hypr-button.full {
+      background: var(--blue);
+    }
+
+    .hypr-button.close {
+      background: var(--red);
+      color: var(--text);
+    }
+
+    .window-body {
+      padding: 20px;
+      color: var(--muted);
+    }
+
+    .terminal-line {
+      margin-top: 11px;
+    }
+
+    .popup.left {
+      right: 312px;
+    }
+
+    .popup-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .row {
+      min-height: 33px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 9px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.055);
+      margin-top: 6px;
+    }
+
+    .row.control {
+      padding-right: 7px;
+    }
+
+    .row.action {
+      background: transparent;
+    }
+
+    .row.action:hover,
+    .row.highlight {
+      background: rgba(51, 204, 255, 0.14);
+    }
+
+    .icon-blue {
+      width: 22px;
+      color: var(--blue);
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .divider {
+      height: 1px;
+      margin: 10px 4px 4px;
+      background: var(--line);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .green {
+      color: var(--green);
+    }
+
+    .grow {
+      flex: 1;
+    }
+
+    .control-button {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.055);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .center-panel {
+      position: absolute;
+      left: 50%;
+      top: 118px;
+      width: 784px;
+      transform: translateX(-50%);
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(24, 28, 34, 0.97);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+      padding: 14px;
+    }
+
+    .menu-header {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .menu-header-icon {
+      width: 30px;
+      color: var(--blue);
+      text-align: center;
+      font-size: 18px;
+    }
+
+    .menu-title-group {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .menu-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: rgba(244, 247, 251, 0.94);
+    }
+
+    .menu-subtitle {
+      margin-top: 2px;
+      font-size: 12px;
+      color: rgba(244, 247, 251, 0.58);
+    }
+
+    .menu-control {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      color: rgba(244, 247, 251, 0.72);
+    }
+
+    .network-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .network-row {
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.075);
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .network-row.active {
+      background: rgba(51, 204, 255, 0.18);
+      border-color: rgba(51, 204, 255, 0.55);
+    }
+
+    .network-icon {
+      width: 22px;
+      color: var(--blue);
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .network-copy {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .network-title {
+      font-weight: 700;
+      color: rgba(244, 247, 251, 0.92);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .network-subtitle {
+      margin-top: 3px;
+      font-size: 12px;
+      color: rgba(244, 247, 251, 0.58);
+    }
+
+    .network-check {
+      width: 16px;
+      color: var(--blue);
+      text-align: right;
+      font-size: 12px;
+    }
+
+    .panel-divider {
+      margin: 12px 2px;
+      height: 1px;
+      background: var(--line);
+    }
+  </style>
+</head>
+<body>
+  <main class="scene">
+    <section class="bar">
+      <div class="group">
+        <div class="workspace active">1</div>
+        <div class="workspace">2</div>
+        <div class="workspace">3</div>
+        <div class="window-title">Hyprland workspace</div>
+      </div>
+      <div class="group">
+        <div class="clock">󰥔 15:42</div>
+        <div class="media">▶ Focus playlist</div>
+      </div>
+      <div class="group">
+        <div class="pill icon">󰒓</div>
+        <div class="pill icon stats">󰍛</div>
+        <div class="pill icon notice"></div>
+        <div class="power">⏻</div>
+      </div>
+    </section>
+
+    <section class="window">
+      <div class="hyprbar">
+        <span>kitty - aquatic abyss config</span>
+        <span class="hypr-buttons">
+          <span class="hypr-button full"></span>
+          <span class="hypr-button close">󰖭</span>
+        </span>
+      </div>
+      <div class="window-body">
+        <div class="terminal-line green">config ok</div>
+        <div class="terminal-line">Hyprbars enabled via hyprpm</div>
+        <div class="terminal-line">Waybar clock uses ISO calendar actions</div>
+        <div class="terminal-line muted">SUPER + SHIFT + R reloads Hyprland</div>
+      </div>
+    </section>
+
+    <section class="popup calendar">
+      <div class="calendar-date">Saturday, 13 June 2026</div>
+      <div class="calendar-grid">
+        <div class="calendar-month">June 2026</div>
+        <div class="week">Wk</div><div class="calendar-weekday">Mo</div><div class="calendar-weekday">Tu</div><div class="calendar-weekday">We</div><div class="calendar-weekday">Th</div><div class="calendar-weekday">Fr</div><div class="calendar-weekday">Sa</div><div class="calendar-weekday">Su</div>
+        <div class="week">23</div><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div>
+        <div class="week">24</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div><div class="today">13</div><div>14</div>
+        <div class="week">25</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div><div>20</div><div>21</div>
+        <div class="week">26</div><div>22</div><div>23</div><div>24</div><div>25</div><div>26</div><div>27</div><div>28</div>
+        <div class="week">27</div><div>29</div><div>30</div><div></div><div></div><div></div><div></div><div></div>
+      </div>
+    </section>
+
+    <section class="popup left">
+      <div class="popup-title">
+        <span>Quick settings</span>
+        <span>󰅖</span>
+      </div>
+      <div class="row action"><span class="icon-blue">󰤨</span><span>WiFi</span></div>
+      <div class="row action"><span class="icon-blue">󰂯</span><span>Bluetooth</span></div>
+      <div class="row action"><span class="icon-blue">󰖂</span><span>VPN</span></div>
+      <div class="row action"><span class="icon-blue">󰸉</span><span>Wallpaper</span></div>
+      <div class="row action"><span class="icon-blue">󰈈</span><span>Toggle idle inhibit</span></div>
+      <div class="row action"><span class="icon-blue">󰕾</span><span>Audio</span></div>
+      <div class="row action"><span class="icon-blue">󰂚</span><span>Notifications</span></div>
+      <div class="row action"><span class="icon-blue">󰏖</span><span>System update</span></div>
+      <div class="row action"><span class="icon-blue">󰓅</span><span>System monitor</span></div>
+    </section>
+
+    <section class="center-panel">
+      <div class="menu-header">
+        <div class="menu-header-icon">󰤨</div>
+        <div class="menu-title-group">
+          <div class="menu-title">WiFi Networks</div>
+          <div class="menu-subtitle">5 available</div>
+        </div>
+        <div class="menu-control">󰑓</div>
+        <div class="menu-control">󰅖</div>
+      </div>
+
+      <div class="network-list">
+        <div class="network-row active">
+          <div class="network-icon">󰤨</div>
+          <div class="network-copy">
+            <div class="network-title">Abyssal Reef</div>
+            <div class="network-subtitle">Connected · 91% signal · secured</div>
+          </div>
+          <div class="network-check">󰄬</div>
+        </div>
+        <div class="network-row">
+          <div class="network-icon">󰤥</div>
+          <div class="network-copy">
+            <div class="network-title">Studio 5G</div>
+            <div class="network-subtitle">74% signal · secured</div>
+          </div>
+          <div class="network-check"></div>
+        </div>
+        <div class="network-row">
+          <div class="network-icon">󰤢</div>
+          <div class="network-copy">
+            <div class="network-title">Guest Net</div>
+            <div class="network-subtitle">46% signal · open</div>
+          </div>
+          <div class="network-check"></div>
+        </div>
+        <div class="network-row">
+          <div class="network-icon">󰤟</div>
+          <div class="network-copy">
+            <div class="network-title">Workshop</div>
+            <div class="network-subtitle">28% signal · secured</div>
+          </div>
+          <div class="network-check"></div>
+        </div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <div class="menu-header">
+        <div class="menu-header-icon">󰖂</div>
+        <div class="menu-title-group">
+          <div class="menu-title">VPN Connections</div>
+          <div class="menu-subtitle">3 available</div>
+        </div>
+        <div class="menu-control">󰑓</div>
+        <div class="menu-control">󰅖</div>
+      </div>
+
+      <div class="network-list">
+        <div class="network-row active">
+          <div class="network-icon">󰖂</div>
+          <div class="network-copy">
+            <div class="network-title">CrimsonNet</div>
+            <div class="network-subtitle">Tailscale connected</div>
+          </div>
+          <div class="network-check">󰄬</div>
+        </div>
+        <div class="network-row">
+          <div class="network-icon">󰒃</div>
+          <div class="network-copy">
+            <div class="network-title">work-wireguard</div>
+            <div class="network-subtitle">Connect WireGuard profile</div>
+          </div>
+          <div class="network-check"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="popup">
+      <div class="popup-title">
+        <span>System stats</span>
+        <span>󰅖</span>
+      </div>
+      <div class="row control"><span class="icon-blue">󰕾</span><span class="grow">Volume 42%</span><span class="control-button">−</span><span class="control-button">󰝟</span><span class="control-button">󰐕</span></div>
+      <div class="row control"><span class="icon-blue"></span><span class="grow">Mic muted</span><span class="control-button">−</span><span class="control-button">󰝟</span><span class="control-button">󰐕</span></div>
+      <div class="row highlight"><span class="icon-blue">󰸗</span><span>Power balanced</span></div>
+      <div class="divider"></div>
+      <div class="row"><span class="icon-blue"></span><span>CPU 6%</span></div>
+      <div class="row"><span class="icon-blue"></span><span>RAM 30%</span></div>
+      <div class="row"><span class="icon-blue">󰋊</span><span>Disk 31%</span></div>
+      <div class="row"><span class="icon-blue"></span><span>Temp 52C</span></div>
+      <div class="row"><span class="icon-blue">󰢮</span><span>GPU 4%</span></div>
+    </section>
+  </main>
+</body>
+</html>

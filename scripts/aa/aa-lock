@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# aa-lock — lock the screen (backend interface).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+backend_classic() {
+    # Same single-instance guard as hypridle.conf.
+    if pidof hyprlock >/dev/null 2>&1; then
+        exit 0
+    fi
+
+    exec hyprlock
+}
+
+backend_noctalia() {
+    noctalia msg session lock
+}
+
+aa_dispatch "$@"

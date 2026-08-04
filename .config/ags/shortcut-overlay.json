@@ -1,0 +1,88 @@
+[
+  {
+    "title": "Open programs",
+    "items": [
+      { "key": "SUPER + Return", "action": "Open terminal (AA_TERMINAL)" },
+      { "key": "SUPER + B", "action": "Open browser (AA_BROWSER)" },
+      { "key": "SUPER + E", "action": "Open file manager (AA_FILE_MANAGER)" },
+      { "key": "SUPER + I", "action": "Open IDE (AA_IDE)" },
+      { "key": "SUPER + J", "action": "Open Joplin (if installed)" },
+      { "key": "SUPER + Y", "action": "Open Signal (if installed)" },
+      { "key": "SUPER + X", "action": "Open Element (if installed)" },
+      { "key": "SUPER + Space", "action": "Open app launcher (AA_MENU)" }
+    ]
+  },
+  {
+    "title": "Aquatic Abyss controls",
+    "items": [
+      { "key": "SUPER + Shift + Q", "action": "Toggle Quick Settings" },
+      { "key": "SUPER + Shift + T", "action": "Toggle System Stats (fan, power profile)" },
+      { "key": "SUPER + Shift + W", "action": "Open WiFi picker" },
+      { "key": "SUPER + Shift + V", "action": "Open VPN picker" },
+      { "key": "SUPER + Shift + B", "action": "Toggle Bluetooth soundbar (if configured)" }
+    ]
+  },
+  {
+    "title": "Window movement",
+    "items": [
+      { "key": "SUPER + Shift + Arrow", "action": "Move active window" },
+      { "key": "SUPER + Ctrl + Arrow", "action": "Resize active window" },
+      { "key": "SUPER + Left Mouse", "action": "Drag window" },
+      { "key": "SUPER + Right Mouse", "action": "Resize window" }
+    ]
+  },
+  {
+    "title": "Window focus",
+    "items": [
+      { "key": "SUPER + Arrow", "action": "Move focus" },
+      { "key": "SUPER + Q", "action": "Close active window" },
+      { "key": "SUPER + F", "action": "Toggle fullscreen" },
+      { "key": "SUPER + V", "action": "Toggle floating" },
+      { "key": "SUPER + P", "action": "Toggle pseudo tiling" },
+      { "key": "SUPER + G", "action": "Toggle split direction" }
+    ]
+  },
+  {
+    "title": "Workspace navigation",
+    "items": [
+      { "key": "SUPER + 1-0", "action": "Switch to workspace 1-10" },
+      { "key": "SUPER + Shift + 1-0", "action": "Move window to workspace 1-10" },
+      { "key": "SUPER + Mouse Wheel", "action": "Switch workspace" },
+      { "key": "SUPER + S", "action": "Toggle special workspace" },
+      { "key": "SUPER + Shift + S", "action": "Move window to special workspace" }
+    ]
+  },
+  {
+    "title": "System control",
+    "items": [
+      { "key": "SUPER + Escape", "action": "Open Wlogout (lock, logout, shutdown)" },
+      { "key": "SUPER + Shift + R", "action": "Reload Hyprland" },
+      { "key": "SUPER + Shift + U", "action": "Run system update" },
+      { "key": "F7 / F8", "action": "Brightness down / up" },
+      { "key": "XF86 Audio Keys", "action": "Volume and mic controls" }
+    ]
+  },
+  {
+    "title": "Screenshots / media",
+    "items": [
+      { "key": "Print", "action": "Screenshot region in Satty" },
+      { "key": "Shift + Print", "action": "Screenshot window in Satty" }
+    ]
+  },
+  {
+    "title": "Display / monitor rescue",
+    "items": [
+      { "key": "SUPER + M", "action": "Open nwg-displays" },
+      { "key": "SUPER + Shift + M", "action": "Disable laptop display eDP-1" },
+      { "key": "SUPER + Ctrl + M", "action": "Restore laptop display eDP-1" },
+      { "key": "SUPER + Alt + M", "action": "Re-apply dynamic monitor layout" }
+    ]
+  },
+  {
+    "title": "Misc / special actions",
+    "items": [
+      { "key": "SUPER + H", "action": "Toggle this shortcut overlay" },
+      { "key": "Esc", "action": "Hide this shortcut overlay" }
+    ]
+  }
+]

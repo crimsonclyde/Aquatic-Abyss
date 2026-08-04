@@ -1,0 +1,117 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 46,
+  "spacing": 4,
+  "modules-left": [
+    "hyprland/workspaces",
+    "hyprland/window"
+  ],
+  "modules-center": [
+    "clock",
+    "mpris"
+  ],
+  "modules-right": [
+    "tray",
+    "custom/quick_settings",
+    "custom/system_stats",
+    "custom/notification",
+    "custom/power"
+  ],
+  "hyprland/workspaces": {
+    "disable-scroll": true,
+    "all-outputs": true,
+    "format": "{name}",
+    "format-icons": {
+      "urgent": "",
+      "focused": "",
+      "default": ""
+    }
+  },
+  "clock": {
+    "interval": 30,
+    "format": "󰥔 {:%H:%M}",
+    "format-alt": "󰃭 {:%a %d.%m}",
+    "tooltip-format": "<span color='#f4f7fb' font='JetBrainsMono Nerd Font 11'><b>{:%A, %d %B %Y}</b></span>\n\n<span font='JetBrainsMono Nerd Font 10'>{calendar}</span>",
+    "calendar": {
+      "mode": "month",
+      "mode-mon-col": 3,
+      "weeks-pos": "right",
+      "on-scroll": 1,
+      "iso8601": true,
+      "format": {
+        "months": "<span color='#f4f7fb'><b>{}</b></span>",
+        "weekdays": "<span color='#9ddcff'><b>{}</b></span>",
+        "weeks": "<span color='#7d8796'>W{}</span>",
+        "days": "<span color='#c7d0dd'>{}</span>",
+        "today": "<span color='#181c22' background='#33ccff'><b>{}</b></span>"
+      }
+    },
+    "actions": {
+      "on-click-right": "mode",
+      "on-scroll-up": "shift_up",
+      "on-scroll-down": "shift_down"
+    }
+  },
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "tooltip-format-activated": "Idle Inhibitor: Active\nScreen will not sleep or lock",
+    "tooltip-format-deactivated": "Idle Inhibitor: Inactive\nManaged by Hypridle\nLock Screen: 5 min\nScreen Off: 5.5 min",
+    "format-icons": {
+      "activated": "󰈈",
+      "deactivated": "󰤄"
+    }
+  },
+  "mpris": {
+    "format": "{player_icon} {title}",
+    "format-paused": "{status_icon} <i>{title}</i>",
+    "player-icons": {
+      "default": "▶",
+      "mpd": "🎵"
+    },
+    "status-icons": {
+      "paused": "⏸"
+    },
+    "ignored-players": [
+      "firefox"
+    ]
+  },
+  "custom/power": {
+    "format": "⏻",
+    "tooltip": false,
+    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/aa/aa-session\"'",
+  },
+  "custom/notification": {
+    "tooltip": false,
+    "format": "{icon}",
+    "format-icons": {
+      "notification": "<span foreground='red'><sup></sup></span>",
+      "none": "",
+      "dnd-notification": "<span foreground='red'><sup></sup></span>",
+      "dnd-none": "",
+      "inhibited-notification": "<span foreground='red'><sup></sup></span>",
+      "inhibited-none": "",
+      "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
+      "dnd-inhibited-none": "",
+    },
+    "return-type": "json",
+    "exec-if": "which swaync-client",
+    "exec": "swaync-client -swb",
+    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/aa/aa-notify\" panel'",
+    "on-click-right": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/aa/aa-notify\" dnd'",
+    "escape": true
+  },
+
+  "custom/quick_settings": {
+    "format": "󰒓",
+    "tooltip": true,
+    "tooltip-format": "Quick settings",
+    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/quick-settings.sh\" toggle'"
+  },
+  "custom/system_stats": {
+    "format": "󰍛",
+    "tooltip": true,
+    "tooltip-format": "System stats",
+    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/system-stats.sh\" toggle'"
+  }
+}

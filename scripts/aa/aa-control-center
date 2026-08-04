@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# aa-control-center — quick settings / control centre (backend interface).
+# Subcommands pass through to the backend's panel; default is toggle.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+backend_classic() {
+    if [ $# -eq 0 ]; then
+        exec "$REPO/scripts/quick-settings.sh" toggle
+    fi
+
+    exec "$REPO/scripts/quick-settings.sh" "$@"
+}
+
+backend_noctalia() {
+    case "${1:-toggle}" in
+        toggle) noctalia msg panel-toggle control-center ;;
+        show)   noctalia msg panel-open control-center ;;
+        hide)   noctalia msg panel-close control-center ;;
+        # Anything else (wifi/vpn/wallpaper pickers, start/stop/restart) is
+        # AGS-panel specific — return nonzero so dispatch falls back to the
+        # classic implementation, which still runs standalone.
+        *)      return 1 ;;
+    esac
+}
+
+aa_dispatch "$@"

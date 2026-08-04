@@ -1,0 +1,14 @@
+[
+  {
+    "menu": "system-stats",
+    "type": "control-row",
+    "icon": "󰈐",
+    "status": "status",
+    "buttons": [
+      { "icon": "−", "action": "down" },
+      { "icon": "A", "action": "auto", "tooltip": "Back to automatic" },
+      { "icon": "󰐕", "action": "up" }
+    ],
+    "refreshDelayMs": 300
+  }
+]

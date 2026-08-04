@@ -1,0 +1,16 @@
+hyprland.code-workspace
+.aider*
+archive/
+.config/hypr/vpn_menu.env
+.config/waypaper/config.ini
+# local/dev module fixtures, never shipped
+modules/_*
+# Claude Code local (per-machine) permissions — never shipped
+.claude/settings.local.json
+
+# Machine-specific Noctalia overrides (merges last, wins; see .config/noctalia/00-aquatic-base.toml)
+.config/noctalia/90-user.toml
+
+# Safety net: real env files never belong in the repo (ship *.env.example instead).
+*.env
+!config/defaults.env

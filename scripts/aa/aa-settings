@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# aa-settings — shell settings UI (backend interface).
+# The classic backend has no settings GUI; configuration is file-based.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+backend_classic() {
+    echo "aa-settings: the classic backend has no shell settings UI." >&2
+    echo "Edit ~/.config/aquatic-abyss/config.env (defaults: config/defaults.env)." >&2
+}
+
+backend_noctalia() {
+    noctalia msg settings-toggle
+}
+
+aa_dispatch "$@"

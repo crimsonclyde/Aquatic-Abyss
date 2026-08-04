@@ -1,0 +1,53 @@
+window.osd-window {
+    background: transparent;
+}
+
+.osd {
+    margin-bottom: 96px;
+    padding: 14px 18px;
+    min-width: 330px;
+    background: rgba(24, 28, 34, 0.92);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
+}
+
+.osd-icon {
+    color: #33ccff;
+}
+
+.osd-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+    color: rgba(244, 247, 251, 0.72);
+}
+
+.osd-value {
+    min-width: 42px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.osd-bar {
+    min-height: 8px;
+}
+
+.osd-bar trough {
+    min-height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.osd-bar block.filled {
+    min-height: 8px;
+    border-radius: 999px;
+    background: #33ccff;
+}
+
+.osd-bar block.empty {
+    min-height: 8px;
+    border-radius: 999px;
+    background: transparent;
+}

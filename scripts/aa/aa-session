@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# aa-session — logout/reboot/shutdown UI (backend interface).
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/backend.sh
+. "$SCRIPT_DIR/../lib/backend.sh"
+
+backend_classic() {
+    exec wlogout --protocol layer-shell
+}
+
+backend_noctalia() {
+    noctalia msg panel-toggle session
+}
+
+aa_dispatch "$@"

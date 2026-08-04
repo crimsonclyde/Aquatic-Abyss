@@ -1,0 +1,249 @@
+window.quick-window {
+    background: transparent;
+}
+
+window.wallpaper-window {
+    background: transparent;
+}
+
+window.vpn-window {
+    background: transparent;
+}
+
+window.wifi-window {
+    background: transparent;
+}
+
+.quick-panel {
+    margin-top: 50px;
+    margin-right: 10px;
+    padding: 10px;
+    min-width: 280px;
+    background: rgba(24, 28, 34, 0.96);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.40);
+}
+
+.quick-header {
+    margin-bottom: 2px;
+}
+
+.quick-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(244, 247, 251, 0.78);
+}
+
+.quick-close,
+.quick-button {
+    background: transparent;
+    color: #f4f7fb;
+    border-radius: 6px;
+}
+
+.quick-close {
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+    color: rgba(244, 247, 251, 0.66);
+}
+
+.quick-button {
+    padding: 8px 10px;
+}
+
+.quick-close:hover,
+.quick-button:hover {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.quick-icon {
+    min-width: 22px;
+    font-size: 15px;
+    color: #33ccff;
+}
+
+.quick-label {
+    font-size: 13px;
+}
+
+.wallpaper-panel,
+.vpn-panel,
+.network-panel {
+    padding: 14px;
+    min-width: 784px;
+    background: rgba(24, 28, 34, 0.97);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.40);
+}
+
+.network-panel,
+.vpn-panel {
+    min-height: 320px;
+}
+
+.menu-header {
+    margin-bottom: 4px;
+}
+
+.menu-header-icon {
+    min-width: 30px;
+    font-size: 18px;
+    color: #33ccff;
+}
+
+.menu-title-group {
+    min-height: 34px;
+}
+
+.menu-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(244, 247, 251, 0.94);
+}
+
+.menu-subtitle {
+    font-size: 12px;
+    color: rgba(244, 247, 251, 0.58);
+}
+
+.vpn-close,
+.network-close,
+.wallpaper-close,
+.wallpaper-control,
+.network-control,
+.vpn-control {
+    min-width: 30px;
+    min-height: 30px;
+    padding: 0;
+    background: transparent;
+    color: rgba(244, 247, 251, 0.72);
+    border-radius: 6px;
+}
+
+.vpn-close:hover,
+.network-close:hover,
+.wallpaper-close:hover,
+.wallpaper-control:hover,
+.network-control:hover,
+.vpn-control:hover {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.network-scroll {
+    min-height: 408px;
+}
+
+.network-list,
+.vpn-list {
+    padding: 0;
+}
+
+.network-row,
+.vpn-row {
+    padding: 8px 10px;
+    min-height: 50px;
+    background: rgba(255, 255, 255, 0.055);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 6px;
+}
+
+.network-row:hover,
+.vpn-row:hover {
+    background: rgba(51, 204, 255, 0.14);
+    border-color: rgba(51, 204, 255, 0.35);
+}
+
+.network-active,
+.vpn-active {
+    background: rgba(51, 204, 255, 0.18);
+    border-color: rgba(51, 204, 255, 0.55);
+}
+
+.network-icon,
+.vpn-icon {
+    min-width: 22px;
+    font-size: 15px;
+    color: #33ccff;
+}
+
+.network-title,
+.vpn-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(244, 247, 251, 0.92);
+}
+
+.network-subtitle,
+.vpn-subtitle {
+    font-size: 12px;
+    color: rgba(244, 247, 251, 0.58);
+}
+
+.network-state,
+.vpn-state {
+    min-width: 16px;
+    font-size: 12px;
+    color: #33ccff;
+}
+
+.network-empty,
+.vpn-empty {
+    padding: 18px;
+    color: rgba(244, 247, 251, 0.62);
+}
+
+.wallpaper-scroll {
+    min-height: 588px;
+}
+
+.wallpaper-grid {
+    padding: 2px;
+}
+
+.wallpaper-tile {
+    min-width: 238px;
+    min-height: 174px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.055);
+    color: #f4f7fb;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 7px;
+}
+
+.wallpaper-tile:hover {
+    background: rgba(51, 204, 255, 0.14);
+    border-color: rgba(51, 204, 255, 0.35);
+}
+
+.wallpaper-active {
+    background: rgba(51, 204, 255, 0.18);
+    border-color: rgba(51, 204, 255, 0.55);
+}
+
+.wallpaper-thumb {
+    min-width: 222px;
+    min-height: 130px;
+    border-radius: 5px;
+}
+
+.wallpaper-active-dot {
+    min-width: 14px;
+    font-size: 11px;
+    color: #33ccff;
+}
+
+.wallpaper-name {
+    font-size: 12px;
+    color: rgba(244, 247, 251, 0.86);
+}
+
+.wallpaper-empty {
+    padding: 28px;
+    color: rgba(244, 247, 251, 0.62);
+}
