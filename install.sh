@@ -18,8 +18,6 @@ PACMAN_PACKAGES=(
     waybar
     wofi
     wlogout
-    kitty
-    nautilus
     network-manager-applet
     blueman
     brightnessctl
@@ -42,6 +40,8 @@ PACMAN_PACKAGES=(
     git
     # AUR builds (AGS, libastal, noctalia) assume the base-devel toolchain.
     base-devel
+    # Interactive installer menus.
+    gum
 )
 
 AUR_PACKAGES=(
@@ -112,28 +112,174 @@ done
 # fall back to $0 so set -u does not abort, landing on the current directory.
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
-confirm() {
-    local prompt="$1"
-    local answer
+# ---------------------------------------------------------------------------
+# Interaction layer. Uses gum (charmbracelet) for menus when available and
+# falls back to plain prompts. Every prompt has a safe default so piped,
+# non-interactive runs (curl | bash) complete without hanging.
+# ---------------------------------------------------------------------------
+
+INTERACTIVE=0
+if [ -t 0 ]; then
+    INTERACTIVE=1
+fi
+USE_GUM=0
+
+C_RESET="" C_BOLD="" C_TITLE="" C_DIM=""
+if [ -t 1 ]; then
+    C_RESET=$'\033[0m'
+    C_BOLD=$'\033[1m'
+    C_TITLE=$'\033[1;36m'
+    C_DIM=$'\033[2m'
+fi
+
+print_banner() {
+    echo
+    echo "${C_TITLE}  ≋≋≋  Acquatic Abyss  ≋≋≋${C_RESET}"
+    echo "${C_DIM}  A deep-sea Hyprland desktop. The installer will walk you through"
+    echo "  a few choices; every one shows its default and can be changed later"
+    echo "  in ~/.config/aquatic-abyss/config.env.${C_RESET}"
+}
+
+header() {
+    echo
+    echo "${C_TITLE}==> ${C_BOLD}$1${C_RESET}"
+    if [ -n "${2:-}" ]; then
+        echo "${C_DIM}    $2${C_RESET}"
+    fi
+}
+
+# gum makes the menus pleasant; grab it first so even the first question
+# benefits. Best effort only — every prompt also works without it.
+ensure_gum() {
+    [ "$INTERACTIVE" -eq 1 ] || return 0
+    command -v gum >/dev/null 2>&1 && return 0
+    [ "$INSTALL_DEPS" -eq 1 ] || return 0
+    command -v pacman >/dev/null 2>&1 || return 0
+
+    echo "Installing gum (interactive installer menus)..."
+    sudo pacman -S --needed gum || true
+}
+
+ui_init() {
+    if [ "$INTERACTIVE" -eq 1 ] && command -v gum >/dev/null 2>&1; then
+        USE_GUM=1
+    fi
+}
+
+# ui_confirm <question> [yes|no]   (second arg = default, defaults to no)
+ui_confirm() {
+    local prompt="$1" default="${2:-no}"
+    local hint="[y/N]" answer
+
+    if [ "$INTERACTIVE" -eq 0 ]; then
+        if [ "$default" = "yes" ]; then return 0; else return 1; fi
+    fi
+
+    if [ "$USE_GUM" -eq 1 ]; then
+        local args=()
+        if [ "$default" = "no" ]; then
+            args=(--default=false)
+        fi
+        if gum confirm "${args[@]}" "$prompt"; then return 0; else return 1; fi
+    fi
+
+    if [ "$default" = "yes" ]; then
+        hint="[Y/n]"
+    fi
 
     while true; do
-        if ! read -r -p "$prompt [y/N] " answer; then
+        if ! read -r -p "$prompt $hint " answer; then
             echo
-            return 1
+            if [ "$default" = "yes" ]; then return 0; else return 1; fi
         fi
 
         case "${answer,,}" in
-            y|yes)
-                return 0
+            y|yes) return 0 ;;
+            n|no) return 1 ;;
+            "")
+                if [ "$default" = "yes" ]; then return 0; else return 1; fi
                 ;;
-            ""|n|no)
-                return 1
-                ;;
-            *)
-                echo "Please answer yes or no."
-                ;;
+            *) echo "Please answer yes or no." ;;
         esac
     done
+}
+
+# ui_choose <prompt> <default> <option>...   -> prints the chosen option
+ui_choose() {
+    local prompt="$1" default="$2"
+    shift 2
+    local opts=("$@") answer sel i
+
+    if [ "$INTERACTIVE" -eq 0 ]; then
+        echo "$default"
+        return 0
+    fi
+
+    if [ "$USE_GUM" -eq 1 ]; then
+        sel="$(gum choose --header "$prompt" --selected "$default" "${opts[@]}" || true)"
+        echo "${sel:-$default}"
+        return 0
+    fi
+
+    echo "$prompt" >&2
+    i=1
+    for sel in "${opts[@]}"; do
+        if [ "$sel" = "$default" ]; then
+            echo "  $i) $sel  ${C_DIM}(default)${C_RESET}" >&2
+        else
+            echo "  $i) $sel" >&2
+        fi
+        i=$((i + 1))
+    done
+
+    if ! read -r -p "Choice [1-${#opts[@]}, Enter = default]: " answer; then
+        echo >&2
+        echo "$default"
+        return 0
+    fi
+
+    if [[ "$answer" =~ ^[0-9]+$ ]] && [ "$answer" -ge 1 ] && [ "$answer" -le "${#opts[@]}" ]; then
+        echo "${opts[answer - 1]}"
+    else
+        echo "$default"
+    fi
+    return 0
+}
+
+# ui_multichoose <prompt> <option>...   -> prints selected options, one per
+# line; empty selection is valid (and the non-interactive default).
+ui_multichoose() {
+    local prompt="$1"
+    shift
+    local opts=("$@") answer n i
+
+    if [ "$INTERACTIVE" -eq 0 ]; then
+        return 0
+    fi
+
+    if [ "$USE_GUM" -eq 1 ]; then
+        gum choose --no-limit --header "$prompt" "${opts[@]}" || true
+        return 0
+    fi
+
+    echo "$prompt" >&2
+    i=1
+    for n in "${opts[@]}"; do
+        echo "  $i) $n" >&2
+        i=$((i + 1))
+    done
+
+    if ! read -r -p "Numbers separated by spaces [Enter = none]: " answer; then
+        echo >&2
+        return 0
+    fi
+
+    for n in $answer; do
+        if [[ "$n" =~ ^[0-9]+$ ]] && [ "$n" -ge 1 ] && [ "$n" -le "${#opts[@]}" ]; then
+            echo "${opts[n - 1]}"
+        fi
+    done
+    return 0
 }
 
 bootstrap_repo() {
@@ -177,27 +323,64 @@ choose_backend() {
         return
     fi
 
-    echo
-    echo "Acquatic Abyss ships two desktop shell backends:"
-    echo "  1) noctalia  Quickshell-based bar, menus, and OSD (newer, beta)"
-    echo "  2) classic   Waybar + AGS menus + Hyprbars (deprecated but complete)"
+    header "Desktop shell" \
+        "The backend draws the bar, menus, and on-screen displays."
 
-    local answer
-    if ! read -r -p "Which backend do you want? [1/2, default 2] " answer; then
-        echo
-        answer=""
+    local classic_label="classic — Waybar + AGS menus + Hyprbars (deprecated but complete)"
+    local noctalia_label="noctalia — Quickshell bar, menus, and OSD (newer, beta)"
+    local choice
+    choice="$(ui_choose "Which desktop shell do you want?" "$classic_label" \
+        "$classic_label" "$noctalia_label")"
+
+    BACKEND_CHOICE="${choice%% *}"
+    echo "Using the $BACKEND_CHOICE backend."
+}
+
+# Default applications launched by the desktop keybindings (Super+Return =
+# terminal, Super+B = browser, Super+E = file manager, ...). The chosen apps
+# are installed with --deps and written to ~/.config/aquatic-abyss/config.env.
+APP_TERMINAL_VALUE=""
+APP_BROWSER_VALUE=""
+APP_FILE_MANAGER_VALUE=""
+CHOSEN_APP_PACKAGES=()
+
+choose_apps() {
+    local user_config="${XDG_CONFIG_HOME:-$HOME/.config}/aquatic-abyss/config.env"
+
+    if [ -f "$user_config" ]; then
+        # Existing config wins; the user edits it directly from here on.
+        CHOSEN_APP_PACKAGES=()
+        return
     fi
 
-    case "${answer,,}" in
-        1|noctalia)
-            BACKEND_CHOICE="noctalia"
-            ;;
-        *)
-            BACKEND_CHOICE="classic"
-            ;;
+    header "Default applications" \
+        "Used by the desktop keybindings (terminal, browser, file manager). Picked apps are installed; 'other' keeps the config default so you can edit it later."
+
+    local choice
+
+    choice="$(ui_choose "Terminal (Super+Return):" "kitty (recommended)" \
+        "kitty (recommended)" "alacritty" "foot" "other — set later in config.env")"
+    case "$choice" in
+        kitty*)     APP_TERMINAL_VALUE="kitty";     CHOSEN_APP_PACKAGES+=(kitty) ;;
+        alacritty)  APP_TERMINAL_VALUE="alacritty"; CHOSEN_APP_PACKAGES+=(alacritty) ;;
+        foot)       APP_TERMINAL_VALUE="foot";      CHOSEN_APP_PACKAGES+=(foot) ;;
     esac
 
-    echo "Using the $BACKEND_CHOICE backend."
+    choice="$(ui_choose "Web browser:" "chromium (recommended)" \
+        "chromium (recommended)" "firefox" "other — set later in config.env")"
+    case "$choice" in
+        # Chromium keeps the tuned launch flags from config/defaults.env.
+        chromium*) CHOSEN_APP_PACKAGES+=(chromium) ;;
+        firefox)   APP_BROWSER_VALUE="firefox"; CHOSEN_APP_PACKAGES+=(firefox) ;;
+    esac
+
+    choice="$(ui_choose "File manager (Super+E):" "nautilus (recommended)" \
+        "nautilus (recommended)" "thunar" "dolphin" "other — set later in config.env")"
+    case "$choice" in
+        nautilus*) APP_FILE_MANAGER_VALUE="nautilus"; CHOSEN_APP_PACKAGES+=(nautilus) ;;
+        thunar)    APP_FILE_MANAGER_VALUE="thunar";   CHOSEN_APP_PACKAGES+=(thunar) ;;
+        dolphin)   APP_FILE_MANAGER_VALUE="dolphin";  CHOSEN_APP_PACKAGES+=(dolphin) ;;
+    esac
 }
 
 # Persist the choice in the user config. Must run after install_user_config:
@@ -227,7 +410,8 @@ install_dependencies() {
     fi
 
     echo "Installing pacman packages..."
-    sudo pacman -S --needed "${PACMAN_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}"
+    sudo pacman -S --needed "${PACMAN_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}" \
+        ${CHOSEN_APP_PACKAGES[@]+"${CHOSEN_APP_PACKAGES[@]}"}
 
     local aur_packages=("${AUR_PACKAGES[@]}")
     if [ "$BACKEND_CHOICE" = "noctalia" ]; then
@@ -296,18 +480,27 @@ install_user_config() {
     [ -f "$source" ] || return 0
 
     if [ -f "$target" ]; then
-        echo "User config already exists at $target."
-        return 0
-    fi
-
-    if ! confirm "Copy default app choices to $target (edit it to change terminal, browser, etc.)?"; then
-        echo "Skipping user config. Repo defaults will be used."
+        echo "Keeping existing settings at $target."
         return 0
     fi
 
     mkdir -p "$target_dir"
     cp "$source" "$target"
-    echo "User config created at $target."
+
+    # The repo header warns against editing defaults.env; the user copy is
+    # exactly the place to edit.
+    sed -i '/^# Do NOT edit this file/,+1c\
+# Your personal Acquatic Abyss settings. Edit freely — the installer never\
+# overwrites this file.' "$target"
+
+    [ -n "$APP_TERMINAL_VALUE" ] && \
+        sed -i "s|^AA_TERMINAL=.*|AA_TERMINAL=\"$APP_TERMINAL_VALUE\"|" "$target"
+    [ -n "$APP_BROWSER_VALUE" ] && \
+        sed -i "s|^AA_BROWSER=.*|AA_BROWSER=\"$APP_BROWSER_VALUE\"|" "$target"
+    [ -n "$APP_FILE_MANAGER_VALUE" ] && \
+        sed -i "s|^AA_FILE_MANAGER=.*|AA_FILE_MANAGER=\"$APP_FILE_MANAGER_VALUE\"|" "$target"
+
+    echo "Your choices are saved in $target — edit that file to change apps later."
 }
 
 install_wallpapers() {
@@ -320,18 +513,12 @@ install_wallpapers() {
         return
     fi
 
-    if ! confirm "Copy the default Acquatic Abyss wallpapers to $target_dir?"; then
+    header "Wallpapers" \
+        "The theme ships deep-sea wallpapers used by the wallpaper picker and rotation."
+
+    if ! ui_confirm "Copy the bundled wallpapers to $target_dir? (existing files are never overwritten)" yes; then
         echo "Skipping default wallpapers."
         return
-    fi
-
-    if [ -d "$target_dir" ] && [ -n "$(find "$target_dir" -mindepth 1 -maxdepth 1 -print -quit)" ]; then
-        echo "$target_dir already exists and is not empty."
-        echo "Be careful: copying the defaults may overwrite files with matching names."
-        if ! confirm "Proceed with copying the default wallpapers?"; then
-            echo "Skipping default wallpapers."
-            return
-        fi
     fi
 
     mkdir -p "$target_dir"
@@ -345,8 +532,8 @@ install_wallpapers() {
         return
     fi
 
-    cp -f "${wallpapers[@]}" "$target_dir/"
-    echo "Copied ${#wallpapers[@]} default wallpapers to $target_dir."
+    cp -n "${wallpapers[@]}" "$target_dir/"
+    echo "Wallpapers are in $target_dir."
 }
 
 detect_aur_helper() {
@@ -410,7 +597,7 @@ install_module_sudoers() {
         return 0
     fi
 
-    if ! confirm "Install sudoers rule for module $name ($target)?"; then
+    if ! ui_confirm "Module $name needs a sudo rule ($target) so its controls work without a password prompt. Install it?" yes; then
         echo "Skipping sudoers rule for $name."
         return 0
     fi
@@ -427,22 +614,57 @@ run_module_install_hook() {
     bash "$dir/install.sh" "$REPO_DIR" || echo "Module $name install hook failed." >&2
 }
 
+# One-line description shown in the module menu: the module's `description`
+# file, or the first line of its README as a fallback.
+module_description() {
+    if [ -f "$1/description" ]; then
+        head -n 1 "$1/description"
+        return 0
+    fi
+
+    [ -f "$1/README.md" ] || return 0
+    sed -n '/^#/d; /^[[:space:]]*$/d; s/[*`]//g; p; q' "$1/README.md" | cut -c1-72
+}
+
 install_modules() {
-    local dir name
+    local dir name desc
+    local names=() labels=()
 
     for dir in "$REPO_DIR"/modules/*/; do
         [ -f "$dir/module.sh" ] || continue
         name="$(basename "$dir")"
+        desc="$(module_description "$dir")"
+        names+=("$name")
+        labels+=("$name — ${desc:-no description}")
+    done
 
-        if ! confirm "Set up module '$name' (packages, sudoers, install hooks)?"; then
-            echo "Skipping module $name."
-            continue
-        fi
+    [ "${#names[@]}" -gt 0 ] || return 0
 
+    header "Optional modules" \
+        "Extra features you can add now or any time later with ./install.sh. None are required."
+
+    local selection
+    selection="$(ui_multichoose \
+        "Which optional modules do you want? (Space selects, Enter confirms — none is fine)" \
+        "${labels[@]}")"
+
+    if [ -z "$selection" ]; then
+        echo "No optional modules selected."
+        return 0
+    fi
+
+    while IFS= read -r selection_line; do
+        [ -n "$selection_line" ] || continue
+        name="${selection_line%% —*}"
+        dir="$REPO_DIR/modules/$name/"
+        [ -f "$dir/module.sh" ] || continue
+
+        echo
+        echo "Setting up module $name..."
         install_module_packages "$dir" "$name"
         install_module_sudoers "$dir" "$name"
         run_module_install_hook "$dir" "$name"
-    done
+    done <<<"$selection"
 }
 
 install_plugins() {
@@ -483,7 +705,11 @@ start_hyprland() {
 }
 
 bootstrap_repo "$@"
+print_banner
+ensure_gum
+ui_init
 choose_backend
+choose_apps
 
 if [ "$INSTALL_DEPS" -eq 1 ]; then
     install_dependencies

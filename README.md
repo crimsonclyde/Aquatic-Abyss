@@ -61,17 +61,30 @@ The installer clones or updates the repo, symlinks config directories into `~/.c
 Package groups used by `--deps`:
 
 ```bash
-sudo pacman -S --needed hyprland waybar wofi wlogout kitty nautilus network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git base-devel pavucontrol
+sudo pacman -S --needed hyprland waybar wofi wlogout network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git base-devel gum pavucontrol
 paru -S --needed hyprdynamicmonitors-bin waypaper aylurs-gtk-shell
 ```
 
-The installer asks which desktop shell backend you want: **noctalia**
-(Quickshell-based bar, menus, and OSD — newer, beta; adds the `noctalia-git`
-AUR package) or **classic** (Waybar + AGS menus + Hyprbars — deprecated but
-complete, the default). The choice is stored as `AA_BACKEND` in
-`~/.config/aquatic-abyss/config.env` and can be changed there at any time;
-generic shell keybindings fall back to the classic stack automatically if the
-selected backend is not running.
+The terminal, browser, and file manager are not in the core list — the
+installer installs whichever ones you pick (defaults: kitty, chromium,
+nautilus).
+
+The installer is interactive (menus via `gum`, plain prompts as fallback;
+piped `curl | bash` runs use the defaults everywhere). It asks:
+
+- **Desktop shell** — **classic** (Waybar + AGS menus + Hyprbars — deprecated
+  but complete, the default) or **noctalia** (Quickshell bar, menus, and OSD —
+  newer, beta; adds the `noctalia-git` AUR package). Stored as `AA_BACKEND`.
+- **Default applications** — the terminal, browser, and file manager launched
+  by the desktop keybindings; the picked apps are installed with `--deps`.
+- **Wallpapers** — copy the bundled set to `~/Pictures/Wallpapers` (never
+  overwrites existing files).
+- **Optional modules** — one multi-select menu (see [Modules](#modules)).
+
+All choices land in `~/.config/aquatic-abyss/config.env` and can be changed
+there at any time; if that file already exists the installer keeps it and asks
+nothing. Generic shell keybindings fall back to the classic stack
+automatically if the selected backend is not running.
 
 `--plugins` additionally installs the toolchain hyprpm needs to compile
 Hyprland headers and plugins:
