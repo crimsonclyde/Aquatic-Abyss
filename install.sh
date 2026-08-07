@@ -52,6 +52,15 @@ OPTIONAL_PACKAGES=(
     pavucontrol
 )
 
+# hyprpm compiles Hyprland headers and plugins from source.
+PLUGIN_BUILD_PACKAGES=(
+    base-devel
+    cmake
+    meson
+    cpio
+    git
+)
+
 usage() {
     cat <<EOF
 Usage: ./install.sh [options]
@@ -92,7 +101,9 @@ while [ "$#" -gt 0 ]; do
     shift
 done
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# BASH_SOURCE is unset when the script is piped into bash (curl | bash);
+# fall back to $0 so set -u does not abort, landing on the current directory.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 confirm() {
     local prompt="$1"
@@ -372,6 +383,9 @@ install_plugins() {
         echo "hyprpm is not available. Install Hyprland first, then rerun ./install.sh --plugins." >&2
         exit 1
     fi
+
+    echo "Installing plugin build dependencies..."
+    sudo pacman -S --needed "${PLUGIN_BUILD_PACKAGES[@]}"
 
     echo "Updating Hyprland plugin headers..."
     hyprpm update

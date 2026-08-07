@@ -23,7 +23,9 @@ The screenshot is a sanitized mock preview, not a live desktop capture.
 
 ## Install
 
-This setup targets Arch/CachyOS-style systems.
+This setup targets Arch/CachyOS-style systems. For a step-by-step walkthrough
+on a fresh machine (login, network, update, install — CachyOS as the example),
+see [INSTALL.md](INSTALL.md).
 
 One-liner with dependencies, config install, Hyprbars setup, and Hyprland start:
 
@@ -61,6 +63,13 @@ Package groups used by `--deps`:
 ```bash
 sudo pacman -S --needed hyprland waybar wofi wlogout kitty nautilus network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git pavucontrol
 paru -S --needed hyprdynamicmonitors-bin waypaper aylurs-gtk-shell
+```
+
+`--plugins` additionally installs the toolchain hyprpm needs to compile
+Hyprland headers and plugins:
+
+```bash
+sudo pacman -S --needed base-devel cmake meson cpio git
 ```
 
 If you use `yay` instead of `paru`, the installer will use it automatically.
