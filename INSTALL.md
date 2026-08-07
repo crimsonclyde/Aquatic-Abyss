@@ -78,6 +78,9 @@ cd ~/Documents/Repositories/github/Acquatic-Abyss
 
 What the installer does:
 
+- Asks which desktop shell backend you want: **noctalia** (newer, beta) or
+  **classic** (Waybar + AGS + Hyprbars, deprecated but complete). The choice
+  is saved as `AA_BACKEND` in `~/.config/aquatic-abyss/config.env`.
 - Clones the repository (or updates an existing clone).
 - Installs required packages with `pacman` and AUR packages with `paru` or
   `yay` (`--deps`).

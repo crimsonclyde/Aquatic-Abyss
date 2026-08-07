@@ -61,9 +61,17 @@ The installer clones or updates the repo, symlinks config directories into `~/.c
 Package groups used by `--deps`:
 
 ```bash
-sudo pacman -S --needed hyprland waybar wofi wlogout kitty nautilus network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git pavucontrol
+sudo pacman -S --needed hyprland waybar wofi wlogout kitty nautilus network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git base-devel pavucontrol
 paru -S --needed hyprdynamicmonitors-bin waypaper aylurs-gtk-shell
 ```
+
+The installer asks which desktop shell backend you want: **noctalia**
+(Quickshell-based bar, menus, and OSD — newer, beta; adds the `noctalia-git`
+AUR package) or **classic** (Waybar + AGS menus + Hyprbars — deprecated but
+complete, the default). The choice is stored as `AA_BACKEND` in
+`~/.config/aquatic-abyss/config.env` and can be changed there at any time;
+generic shell keybindings fall back to the classic stack automatically if the
+selected backend is not running.
 
 `--plugins` additionally installs the toolchain hyprpm needs to compile
 Hyprland headers and plugins:

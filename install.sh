@@ -40,6 +40,8 @@ PACMAN_PACKAGES=(
     nwg-displays
     ksshaskpass
     git
+    # AUR builds (AGS, libastal, noctalia) assume the base-devel toolchain.
+    base-devel
 )
 
 AUR_PACKAGES=(
@@ -50,6 +52,11 @@ AUR_PACKAGES=(
 
 OPTIONAL_PACKAGES=(
     pavucontrol
+)
+
+# Installed additionally when the noctalia backend is chosen (choose_backend).
+NOCTALIA_AUR_PACKAGES=(
+    noctalia-git
 )
 
 # hyprpm compiles Hyprland headers and plugins from source.
@@ -158,6 +165,61 @@ bootstrap_repo() {
     exec "$REPO_DIR/install.sh" "${ORIGINAL_ARGS[@]}"
 }
 
+BACKEND_CHOICE="classic"
+
+choose_backend() {
+    local user_config="${XDG_CONFIG_HOME:-$HOME/.config}/aquatic-abyss/config.env"
+
+    if [ -f "$user_config" ] && grep -q '^AA_BACKEND=' "$user_config"; then
+        BACKEND_CHOICE="$(sed -n 's/^AA_BACKEND="\{0,1\}\([a-z0-9_]*\)"\{0,1\}.*$/\1/p' "$user_config" | tail -n 1)"
+        BACKEND_CHOICE="${BACKEND_CHOICE:-classic}"
+        echo "Desktop backend already configured: $BACKEND_CHOICE ($user_config)"
+        return
+    fi
+
+    echo
+    echo "Acquatic Abyss ships two desktop shell backends:"
+    echo "  1) noctalia  Quickshell-based bar, menus, and OSD (newer, beta)"
+    echo "  2) classic   Waybar + AGS menus + Hyprbars (deprecated but complete)"
+
+    local answer
+    if ! read -r -p "Which backend do you want? [1/2, default 2] " answer; then
+        echo
+        answer=""
+    fi
+
+    case "${answer,,}" in
+        1|noctalia)
+            BACKEND_CHOICE="noctalia"
+            ;;
+        *)
+            BACKEND_CHOICE="classic"
+            ;;
+    esac
+
+    echo "Using the $BACKEND_CHOICE backend."
+}
+
+# Persist the choice in the user config. Must run after install_user_config:
+# the copied defaults.env contains AA_BACKEND="classic", which this replaces.
+apply_backend_choice() {
+    local target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/aquatic-abyss"
+    local target="$target_dir/config.env"
+
+    if [ -f "$target" ] && grep -q '^AA_BACKEND=' "$target"; then
+        sed -i "s/^AA_BACKEND=.*/AA_BACKEND=\"$BACKEND_CHOICE\"/" "$target"
+        return
+    fi
+
+    # No user config and classic chosen: the repo default already applies.
+    if [ "$BACKEND_CHOICE" = "classic" ] && [ ! -f "$target" ]; then
+        return
+    fi
+
+    mkdir -p "$target_dir"
+    printf 'AA_BACKEND="%s"\n' "$BACKEND_CHOICE" >>"$target"
+}
+
 install_dependencies() {
     if ! command -v pacman >/dev/null 2>&1; then
         echo "Dependency installation is only automated for Arch/CachyOS systems." >&2
@@ -167,6 +229,11 @@ install_dependencies() {
     echo "Installing pacman packages..."
     sudo pacman -S --needed "${PACMAN_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}"
 
+    local aur_packages=("${AUR_PACKAGES[@]}")
+    if [ "$BACKEND_CHOICE" = "noctalia" ]; then
+        aur_packages+=("${NOCTALIA_AUR_PACKAGES[@]}")
+    fi
+
     local aur_helper=""
     if command -v paru >/dev/null 2>&1; then
         aur_helper="paru"
@@ -175,12 +242,12 @@ install_dependencies() {
     fi
 
     if [ -z "$aur_helper" ]; then
-        echo "No AUR helper found. Install these manually: ${AUR_PACKAGES[*]}" >&2
+        echo "No AUR helper found. Install these manually: ${aur_packages[*]}" >&2
         return
     fi
 
     echo "Installing AUR packages with $aur_helper..."
-    "$aur_helper" -S --needed "${AUR_PACKAGES[@]}"
+    "$aur_helper" -S --needed "${aur_packages[@]}"
 }
 
 link_config() {
@@ -416,6 +483,7 @@ start_hyprland() {
 }
 
 bootstrap_repo "$@"
+choose_backend
 
 if [ "$INSTALL_DEPS" -eq 1 ]; then
     install_dependencies
@@ -423,6 +491,7 @@ fi
 
 install_config
 install_user_config
+apply_backend_choice
 install_wallpapers
 install_modules
 
