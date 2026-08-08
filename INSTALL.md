@@ -78,6 +78,8 @@ cd ~/Documents/Repositories/github/Aquatic-Abyss
 
 What the installer does:
 
+- On Btrfs root filesystems: offers a snapper snapshot first, before
+  anything is installed, and prints the rollback command at the end.
 - Asks which desktop shell backend you want: **noctalia** (the default) or
   **classic** (Waybar + AGS + Hyprbars, deprecated but complete).
 - Asks which terminal, browser, and file manager the keybindings should

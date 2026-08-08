@@ -305,6 +305,64 @@ ui_multichoose() {
     return 0
 }
 
+# Btrfs-only: offer a snapper snapshot before the installer changes anything
+# (runs before ensure_gum, so even the gum install is covered).
+SNAPSHOT_CREATED=0
+SNAPSHOT_NUMBER=""
+SNAPSHOT_DESCRIPTION="Safe state before Aquatic Abyss Install"
+
+offer_snapshot() {
+    [ "$(findmnt -n -o FSTYPE / 2>/dev/null)" = "btrfs" ] || return 0
+
+    header "Filesystem snapshot" \
+        "The root filesystem is Btrfs — a snapper snapshot lets you roll the system back to the state before this install."
+
+    if ! ui_confirm "Create a snapshot before installing anything?" yes; then
+        echo "Skipping the snapshot."
+        return 0
+    fi
+
+    if ! command -v snapper >/dev/null 2>&1; then
+        echo "Installing snapper..."
+        sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} snapper
+    fi
+
+    if ! sudo snapper list >/dev/null 2>&1; then
+        echo "No snapper config for / yet; creating one..."
+        if ! sudo snapper -c root create-config /; then
+            echo "Could not set up snapper; continuing without a snapshot." >&2
+            return 0
+        fi
+    fi
+
+    if SNAPSHOT_NUMBER="$(sudo snapper create --type single --print-number \
+        --description "$SNAPSHOT_DESCRIPTION")"; then
+        SNAPSHOT_CREATED=1
+        echo "Snapshot #$SNAPSHOT_NUMBER created."
+    else
+        SNAPSHOT_NUMBER=""
+        echo "Snapshot creation failed; continuing without one." >&2
+    fi
+    return 0
+}
+
+show_snapshot_info() {
+    [ "$SNAPSHOT_CREATED" -eq 1 ] || return 0
+
+    local list
+    list="$(sudo snapper list 2>/dev/null)" || return 0
+
+    echo
+    echo "${C_TITLE}==> ${C_BOLD}Pre-install snapshot${C_RESET}"
+    printf '%s\n' "$list" | sed -n '1,2p'
+    printf '%s\n' "$list" | grep -F "$SNAPSHOT_DESCRIPTION" | tail -n 1
+    echo
+    echo "To roll the system back to this state later:"
+    echo "  sudo snapper undochange $SNAPSHOT_NUMBER..0"
+    echo "(reverts all file changes made since the snapshot; packages installed"
+    echo "after it disappear from the filesystem, so reboot afterwards)"
+}
+
 bootstrap_repo() {
     if [ -f "$script_dir/.config/hypr/hyprland.lua" ]; then
         REPO_DIR="$script_dir"
@@ -903,6 +961,7 @@ start_hyprland() {
 
 bootstrap_repo "$@"
 print_banner
+offer_snapshot
 ensure_gum
 ui_init
 choose_backend
@@ -922,6 +981,9 @@ install_greeter
 if [ "$INSTALL_PLUGINS" -eq 1 ]; then
     install_plugins
 fi
+
+# Before start_hyprland: a confirmed reboot would swallow this output.
+show_snapshot_info
 
 if [ "$START_HYPRLAND" -eq 1 ]; then
     start_hyprland

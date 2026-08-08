@@ -84,6 +84,10 @@ it asks the same questions as a local run; only truly headless runs (no
 terminal at all) fall back to the defaults everywhere and never touch the
 AUR. It asks:
 
+- **Filesystem snapshot** (Btrfs roots only, asked first) — create a snapper
+  snapshot ("Safe state before Aquatic Abyss Install") before anything is
+  installed. The end of the run shows the snapshot and the
+  `snapper undochange <N>..0` command that rolls the system back to it.
 - **Desktop shell** — **noctalia** (Quickshell bar, menus, and OSD — the
   default; adds the `noctalia` package — from the `cachyos` repo on CachyOS,
   or `noctalia-git` from the AUR elsewhere) or **classic** (Waybar + AGS
