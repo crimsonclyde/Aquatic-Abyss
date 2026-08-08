@@ -97,6 +97,11 @@ What the installer does:
 - Sets up the Hyprbars plugin via `hyprpm` (`--plugins`).
 - Asks per optional module (VPN, fan control, …) whether to install it — each
   module ships its own package list.
+- Offers a themed login screen (greetd + ReGreet with the theme wallpaper)
+  when no display manager is enabled yet, so the machine boots into a
+  graphical login instead of a text console. With `--start` the installer
+  then offers a reboot; pick the **Aquatic Abyss** session on the login
+  screen.
 
 See the [README](README.md) for the full list of installer options and
 package groups.

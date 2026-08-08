@@ -721,6 +721,94 @@ install_modules() {
     done
 }
 
+# Set when a display manager will greet the next boot — either one that was
+# already enabled or the greetd stack this installer sets up. Decides
+# whether --start offers a reboot instead of exec'ing Hyprland raw.
+GREETER_ENABLED=0
+
+install_greeter() {
+    [ "$INSTALL_DEPS" -eq 1 ] || return 0
+    command -v pacman >/dev/null 2>&1 || return 0
+    command -v systemctl >/dev/null 2>&1 || return 0
+
+    # display-manager.service is the systemd alias every enabled DM claims.
+    local dm_unit="/etc/systemd/system/display-manager.service"
+    if [ -e "$dm_unit" ]; then
+        GREETER_ENABLED=1
+        local dm_name
+        dm_name="$(basename "$(readlink -f "$dm_unit")")"
+        echo "Display manager already enabled ($dm_name); leaving it as is."
+        return 0
+    fi
+
+    header "Login screen" \
+        "Without a display manager the machine boots to a text console. greetd + ReGreet is a small Wayland greeter using the theme wallpaper."
+
+    if ! ui_confirm "Install and enable the themed login screen (greetd + ReGreet)?" yes; then
+        echo "Skipping the login screen. Start Hyprland manually from the TTY after logging in."
+        return 0
+    fi
+
+    install_packages greetd greetd-regreet cage
+
+    local wallpaper="$REPO_DIR/appendix/wallpapers/Middle Of The Ocean.png"
+    local greeter_bg="/usr/share/backgrounds/aquatic-abyss/greeter.png"
+    if [ -f "$wallpaper" ]; then
+        sudo install -Dm644 "$wallpaper" "$greeter_bg"
+    else
+        echo "Theme wallpaper not found at $wallpaper; the greeter will use a plain background."
+    fi
+
+    if [ -f /etc/greetd/config.toml ] && ! sudo grep -q regreet /etc/greetd/config.toml 2>/dev/null; then
+        sudo cp /etc/greetd/config.toml /etc/greetd/config.toml.bak
+    fi
+
+    sudo tee /etc/greetd/config.toml >/dev/null <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+# cage hosts the GTK greeter on a minimal Wayland compositor; -s allows
+# VT switching.
+command = "cage -s -- regreet"
+user = "greeter"
+EOF
+
+    sudo tee /etc/greetd/regreet.toml >/dev/null <<EOF
+[background]
+path = "$greeter_bg"
+fit = "Cover"
+
+[GTK]
+application_prefer_dark_theme = true
+EOF
+
+    # The stock hyprland.desktop session launches with the default config
+    # path (hyprland.conf), but this desktop lives in hyprland.lua — ship a
+    # session entry that starts Hyprland with the right config.
+    sudo tee /usr/local/bin/aquatic-abyss-session >/dev/null <<'EOF'
+#!/usr/bin/env bash
+exec Hyprland --config "$HOME/.config/hypr/hyprland.lua"
+EOF
+    sudo chmod 755 /usr/local/bin/aquatic-abyss-session
+
+    sudo tee /usr/share/wayland-sessions/aquatic-abyss.desktop >/dev/null <<'EOF'
+[Desktop Entry]
+Name=Aquatic Abyss
+Comment=Hyprland with the Aquatic Abyss configuration
+Exec=/usr/local/bin/aquatic-abyss-session
+Type=Application
+DesktopNames=Hyprland
+EOF
+
+    if sudo systemctl enable greetd.service; then
+        GREETER_ENABLED=1
+        echo "Login screen enabled. Pick the \"Aquatic Abyss\" session in ReGreet after reboot."
+    else
+        echo "Could not enable greetd; enable it manually with: sudo systemctl enable greetd" >&2
+    fi
+}
+
 install_plugins() {
     if ! command -v hyprpm >/dev/null 2>&1; then
         echo "hyprpm is not available. Install Hyprland first, then rerun ./install.sh --plugins." >&2
@@ -764,8 +852,19 @@ start_hyprland() {
     fi
 
     if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
-        echo "Starting Hyprland..."
-        exec Hyprland --config "$CONFIG_DIR/hypr/hyprland.lua"
+        if [ "$GREETER_ENABLED" -eq 1 ]; then
+            # Hyprland upstream advises against launching from wrapper
+            # scripts; a reboot into the display manager gives a clean
+            # session (logind seat, session environment) instead.
+            if ui_confirm "Setup complete. Reboot now and log in through the login screen?" yes; then
+                sudo systemctl reboot
+                return
+            fi
+            echo "Reboot when ready — the login screen will start Hyprland."
+            return
+        fi
+        echo "Setup complete. No display manager is enabled: log in on the TTY and run 'Hyprland' to start the desktop."
+        return
     fi
 
     echo "Config installed. Log out and start Hyprland from a TTY or display manager."
@@ -787,6 +886,7 @@ install_user_config
 apply_backend_choice
 install_wallpapers
 install_modules
+install_greeter
 
 if [ "$INSTALL_PLUGINS" -eq 1 ]; then
     install_plugins

@@ -55,7 +55,7 @@ The installer clones or updates the repo, symlinks config directories into `~/.c
 | :--- | :--- |
 | `--deps` | Install required packages with `pacman`; anything only the AUR carries is offered as an explicitly confirmed `paru`/`yay` fallback |
 | `--plugins` | Run `hyprpm update`, add `hyprwm/hyprland-plugins`, enable `hyprbars`, and reload plugins. Outside a running Hyprland session (e.g. TTY install) the add/enable half is deferred and runs automatically on first Hyprland start |
-| `--start` | Start Hyprland from a TTY, or reload if Hyprland is already running |
+| `--start` | Reload a running Hyprland; from a TTY with the login screen enabled, offer a reboot into it (launching Hyprland from wrapper scripts is discouraged upstream) |
 | `-h`, `--help` | Show installer help |
 
 Package groups used by `--deps`:
@@ -93,6 +93,11 @@ AUR. It asks:
 - **Wallpapers** — copy the bundled set to `~/Pictures/Wallpapers` (never
   overwrites existing files).
 - **Optional modules** — one multi-select menu (see [Modules](#modules)).
+- **Login screen** (`--deps` only) — install and enable greetd + ReGreet with
+  the theme wallpaper as background, plus an "Aquatic Abyss" session entry
+  that starts Hyprland with this config. Asked only when no display manager
+  is enabled yet; an existing one is always left untouched. Without any
+  display manager the machine boots to a text console.
 
 All choices land in `~/.config/aquatic-abyss/config.env` and can be changed
 there at any time; if that file already exists the installer keeps it and asks
@@ -120,7 +125,12 @@ remove the symlinks in `~/.config` (`hypr`, `ags`, `waybar`, and the other
 directories listed in `install.sh`), restore the backup directory if you want
 your old config back, and delete the cloned repository. Installed packages and
 any `/etc/sudoers.d/zz-aquatic-*` files can be removed with your package
-manager and `sudo rm` respectively.
+manager and `sudo rm` respectively. If the installer set up the login screen,
+also remove `/etc/greetd/config.toml` + `regreet.toml`,
+`/usr/local/bin/aquatic-abyss-session`,
+`/usr/share/wayland-sessions/aquatic-abyss.desktop`,
+`/usr/share/backgrounds/aquatic-abyss/`, and run
+`sudo systemctl disable greetd` before uninstalling the packages.
 
 ## User configuration
 
