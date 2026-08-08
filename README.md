@@ -54,7 +54,7 @@ The installer clones or updates the repo, symlinks config directories into `~/.c
 | Option | Action |
 | :--- | :--- |
 | `--deps` | Install required packages with `pacman`; anything only the AUR carries is offered as an explicitly confirmed `paru`/`yay` fallback |
-| `--plugins` | Run `hyprpm update`, add `hyprwm/hyprland-plugins`, enable `hyprbars`, and reload plugins |
+| `--plugins` | Run `hyprpm update`, add `hyprwm/hyprland-plugins`, enable `hyprbars`, and reload plugins. Outside a running Hyprland session (e.g. TTY install) the add/enable half is deferred and runs automatically on first Hyprland start |
 | `--start` | Start Hyprland from a TTY, or reload if Hyprland is already running |
 | `-h`, `--help` | Show installer help |
 

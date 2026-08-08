@@ -727,6 +727,18 @@ install_plugins() {
     echo "Updating Hyprland plugin headers..."
     hyprpm update
 
+    # hyprpm add/enable/reload talk to the running Hyprland instance and
+    # fail on a bare TTY ("no $HOME or $HYPRLAND_INSTANCE_SIGNATURE").
+    # Leave a marker instead; hyprpm-reload-notify.sh, which runs at every
+    # Hyprland start, finishes the add/enable inside the first session.
+    if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/aquatic-abyss"
+        mkdir -p "$state_dir"
+        : >"$state_dir/hyprpm-setup-pending"
+        echo "No running Hyprland session — Hyprbars will be built and enabled automatically on first start."
+        return 0
+    fi
+
     echo "Adding official Hyprland plugins repository..."
     if ! hyprpm add https://github.com/hyprwm/hyprland-plugins; then
         echo "Repository may already exist; continuing."
