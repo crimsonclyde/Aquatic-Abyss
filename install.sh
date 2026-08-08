@@ -493,7 +493,11 @@ repo_has() {
 # AUR builds are user-submitted and unreviewed, so nothing is fetched from
 # there without an explicit yes; piped/headless runs skip the AUR entirely.
 install_packages() {
-    local pkg repo_pkgs=() aur_pkgs=() aur_helper
+    local pkg repo_pkgs=() aur_pkgs=() aur_helper providers=()
+
+    # Add provider packages first so they are part of the same transaction.
+    mapfile -t providers < <(provider_packages "$@")
+    set -- "$@" ${providers[@]+"${providers[@]}"}
 
     for pkg in "$@"; do
         if repo_has "$pkg"; then
@@ -536,31 +540,50 @@ contains_package() {
     return 1
 }
 
-# provider_packages <planned pkg>...  -> prints the extra packages to add
-#
 # pacman interrupts an install to ask which package should satisfy a
-# dependency whenever several can. Naming the provider we want up front
-# keeps the run going. `pacman -T` reports a dependency as satisfied (exit
-# 0) when something providing it is already installed, so an existing
-# choice — a KDE user's kwallet, say — is never second-guessed.
-provider_packages() {
+# dependency whenever several can — either because different packages offer
+# the same feature, or because a soname lives in both the Arch and CachyOS
+# builds of one package. Each rule is "<dependency> <provider> [trigger]...":
+# when the dependency is unsatisfied, and any trigger package is part of the
+# install (no trigger means always), the provider is named on the command
+# line so no menu appears.
+PROVIDER_RULES=(
     # ksshaskpass (SSH passphrase prompts, in the core list) needs a Secret
     # Service daemon; NetworkManager and Chromium use it too. gnome-keyring
-    # is the one that unlocks itself via PAM at login, so secrets are
-    # available without opening anything first — unlike keepassxc, which
-    # only serves secrets while its database is open. kwallet and oo7 stay
-    # unrequested; users who prefer them can install one and rerun.
-    if ! pacman -T org.freedesktop.secrets >/dev/null 2>&1; then
-        echo gnome-keyring
-    fi
+    # unlocks itself via PAM at login, so secrets are available without
+    # opening anything first — unlike keepassxc, which only serves them
+    # while its database is open. kwallet and oo7 stay unrequested.
+    "org.freedesktop.secrets gnome-keyring"
+    # nautilus pulls localsearch, which needs totem-plparser.
+    "totem-plparser totem-pl-parser nautilus"
+    # cage (the greeter's compositor) pulls wlroots, which needs libliftoff.
+    "libliftoff libliftoff cage"
+)
 
-    # nautilus pulls localsearch, which needs totem-plparser. Only
-    # totem-pl-parser provides it, but CachyOS and Arch each ship a build,
-    # and pacman treats that as a choice too.
-    if contains_package nautilus "$@" \
-        && ! pacman -T totem-plparser >/dev/null 2>&1; then
-        echo totem-pl-parser
-    fi
+# provider_packages <planned pkg>...  -> prints the extra packages to add.
+# `pacman -T` reports a dependency as satisfied (exit 0) when something
+# providing it is already installed, so an existing choice — a KDE user's
+# kwallet, say — is never second-guessed.
+provider_packages() {
+    local rule dep provider triggers trigger needed
+
+    for rule in "${PROVIDER_RULES[@]}"; do
+        read -r dep provider triggers <<<"$rule"
+
+        needed=1
+        if [ -n "$triggers" ]; then
+            needed=0
+            for trigger in $triggers; do
+                if contains_package "$trigger" "$@"; then
+                    needed=1
+                    break
+                fi
+            done
+        fi
+
+        [ "$needed" -eq 1 ] || continue
+        pacman -T "$dep" >/dev/null 2>&1 || echo "$provider"
+    done
 }
 
 install_dependencies() {
@@ -580,10 +603,6 @@ install_dependencies() {
             wanted+=(noctalia-git)
         fi
     fi
-
-    local providers=()
-    mapfile -t providers < <(provider_packages "${wanted[@]}")
-    wanted+=(${providers[@]+"${providers[@]}"})
 
     install_packages "${wanted[@]}"
 }

@@ -78,12 +78,19 @@ The terminal, browser, and file manager are not in the core list — the
 installer installs whichever ones you pick (defaults: kitty, chromium,
 nautilus).
 
-Two dependencies can be satisfied by more than one package, which would make
-pacman stop and ask mid-install, so the installer picks for you: a Secret
-Service daemon (needed by `ksshaskpass`, NetworkManager, and Chromium for
-saved passwords) resolves to `gnome-keyring`, which PAM unlocks at login, and
-`totem-plparser` resolves to `totem-pl-parser` when nautilus is installed.
-Neither is touched if something already provides it — install `kwallet`,
+A few dependencies can be satisfied by more than one package, which would
+make pacman stop and ask mid-install, so the installer names the provider
+itself:
+
+| Dependency | Installed | When |
+| :--- | :--- | :--- |
+| `org.freedesktop.secrets` | `gnome-keyring` | always (needed by `ksshaskpass`, NetworkManager, Chromium) |
+| `totem-plparser` | `totem-pl-parser` | with nautilus |
+| `libliftoff` | `libliftoff` | with the login screen (`cage`) |
+
+`gnome-keyring` is chosen because PAM unlocks it at login, so wifi, SSH, and
+browser secrets work without opening anything first. None of these are
+touched when something already provides them — install `kwallet`,
 `keepassxc`, or `oo7` yourself beforehand and the installer leaves your
 choice alone.
 
