@@ -17,6 +17,12 @@ pending="$state_dir/hyprpm-setup-pending"
 
 finish_pending_setup() {
     local out
+    # Headers first: the TTY install skips hyprpm update entirely (it needs
+    # the running instance), so this may be the first headers build.
+    out=$(hyprpm update 2>&1) || {
+        printf '%s\n' "$out"
+        return 1
+    }
     # The repo may already be added by a partial earlier attempt.
     if out=$(hyprpm enable hyprbars 2>&1); then
         return 0
@@ -34,7 +40,7 @@ finish_pending_setup() {
 
 if [ -f "$pending" ]; then
     notify-send --app-name=hyprpm --urgency=low \
-        "hyprpm" "First start: building the Hyprbars plugin, this can take a minute..."
+        "hyprpm" "First start: building plugin headers and Hyprbars — this can take a few minutes..."
     if err=$(finish_pending_setup); then
         rm -f "$pending"
     else

@@ -724,20 +724,21 @@ install_plugins() {
     echo "Installing plugin build dependencies..."
     sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${PLUGIN_BUILD_PACKAGES[@]}"
 
-    echo "Updating Hyprland plugin headers..."
-    hyprpm update
-
-    # hyprpm add/enable/reload talk to the running Hyprland instance and
-    # fail on a bare TTY ("no $HOME or $HYPRLAND_INSTANCE_SIGNATURE").
-    # Leave a marker instead; hyprpm-reload-notify.sh, which runs at every
-    # Hyprland start, finishes the add/enable inside the first session.
+    # Every hyprpm subcommand — update included, whose final reload/notify
+    # step is what dies with "no $HOME or $HYPRLAND_INSTANCE_SIGNATURE" —
+    # needs the running Hyprland instance. On a bare TTY leave a marker
+    # instead; hyprpm-reload-notify.sh, which runs at every Hyprland start,
+    # performs the whole update/add/enable inside the first session.
     if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/aquatic-abyss"
         mkdir -p "$state_dir"
         : >"$state_dir/hyprpm-setup-pending"
-        echo "No running Hyprland session — Hyprbars will be built and enabled automatically on first start."
+        echo "No running Hyprland session — plugin headers and Hyprbars will be built automatically on first start."
         return 0
     fi
+
+    echo "Updating Hyprland plugin headers..."
+    hyprpm update
 
     echo "Adding official Hyprland plugins repository..."
     if ! hyprpm add https://github.com/hyprwm/hyprland-plugins; then
