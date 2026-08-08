@@ -1,6 +1,7 @@
 # Aquatic Abyss
 
-An advanced, keyboard-first Hyprland desktop inspired by the deep sea, bioluminescence, and the timeless cosmic horror of the Great Old Ones.
+An advanced, keyboard-first Hyprland desktop inspired by the deep sea,
+bioluminescence, and the timeless cosmic horror of the Great Old Ones.
 
 ![Waybar and AGS popups](docs/screenshots/waybar-popups.png)
 
@@ -21,228 +22,32 @@ The screenshot is a sanitized mock preview, not a live desktop capture.
 | Power | Wlogout layer-shell power menu |
 | Screenshots | Hyprshot region/window capture piped into Satty |
 
+![Wallpaper picker](docs/screenshots/wallpaper-picker-preview.png)
+
+Wallpapers are picked from a thumbnail grid — see the
+[wallpaper manual](docs/manuals/WALLPAPER.md).
+
 ## Install
 
-This setup targets Arch/CachyOS-style systems. For a step-by-step walkthrough
-on a fresh machine (login, network, update, install — CachyOS as the example),
-see [INSTALL.md](INSTALL.md).
-
-One-liner with dependencies, config install, Hyprbars setup, and Hyprland start:
+Aquatic Abyss targets Arch/CachyOS-style systems. On an up-to-date machine:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash -s -- --deps --plugins --start
+curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash -s -- --deps --plugins
 ```
 
-Config-only install after dependencies are already present:
+The installer asks before it changes anything: it offers a rollback point on
+Btrfs, lets you pick the desktop shell and your terminal/browser/file manager,
+and backs up existing config directories before symlinking its own into
+`~/.config`.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash
-```
-
-Manual clone:
-
-```bash
-git clone https://github.com/crimsonclyde/Aquatic-Abyss.git ~/Documents/Repositories/github/Aquatic-Abyss
-cd ~/Documents/Repositories/github/Aquatic-Abyss
-./install.sh --deps --plugins
-```
-
-The installer clones or updates the repo, symlinks config directories into `~/.config`, and backs up existing config directories to `~/.config/hypr_backup_<timestamp>`.
-
-## Installer Options
-
-| Option | Action |
-| :--- | :--- |
-| `--deps` | Install required packages with `pacman`; anything only the AUR carries is offered as an explicitly confirmed `paru`/`yay` fallback |
-| `--plugins` | Run `hyprpm update`, add `hyprwm/hyprland-plugins`, enable `hyprbars`, and reload plugins. Outside a running Hyprland session (e.g. TTY install) the add/enable half is deferred and runs automatically on first Hyprland start |
-| `--start` | Reload a running Hyprland; from a TTY with the login screen enabled, offer a reboot into it (launching Hyprland from wrapper scripts is discouraged upstream) |
-| `-h`, `--help` | Show installer help |
-
-Package groups used by `--deps`:
-
-```bash
-sudo pacman -S --needed hyprland waybar wofi wlogout network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git base-devel gum pavucontrol
-```
-
-Three more packages (`hyprdynamicmonitors-bin`, `waypaper`,
-`aylurs-gtk-shell`) are not in the official Arch repos everywhere. The
-installer checks your configured repositories first — on CachyOS, `waypaper`
-comes from the `cachyos` repo via plain `pacman` — and only offers what is
-left as an AUR build (`paru`/`yay`), after an explicit confirmation. AUR
-packages are user-submitted and unreviewed, so the default is to skip them;
-the installer prints the command to add them later. Skipping costs the
-automatic monitor profiles (`hyprdynamicmonitors-bin`) and, on the classic
-backend, the AGS menus (`aylurs-gtk-shell`).
-
-The terminal, browser, and file manager are not in the core list — the
-installer installs whichever ones you pick (defaults: kitty, chromium,
-nautilus).
-
-A few dependencies can be satisfied by more than one package, which would
-make pacman stop and ask mid-install, so the installer names the provider
-itself:
-
-| Dependency | Installed | When |
-| :--- | :--- | :--- |
-| `org.freedesktop.secrets` | `gnome-keyring` | always (needed by `ksshaskpass`, NetworkManager, Chromium) |
-| `totem-plparser` | `totem-pl-parser` | with nautilus |
-| `libliftoff` | `libliftoff` | with the login screen (`cage`) |
-
-`gnome-keyring` is chosen because PAM unlocks it at login, so wifi, SSH, and
-browser secrets work without opening anything first. None of these are
-touched when something already provides them — install `kwallet`,
-`keepassxc`, or `oo7` yourself beforehand and the installer leaves your
-choice alone.
-
-The installer is interactive (menus via `gum`, plain prompts as fallback).
-The piped `curl | bash` one-liner reattaches your terminal after cloning, so
-it asks the same questions as a local run; only truly headless runs (no
-terminal at all) fall back to the defaults everywhere and never touch the
-AUR. It asks:
-
-- **Rollback point** (Btrfs roots only, asked first) — snapshot the system
-  before anything is installed, so the whole install can be undone. See
-  [Rollback](#rollback).
-- **Desktop shell** — **noctalia** (Quickshell bar, menus, and OSD — the
-  default; adds the `noctalia` package — from the `cachyos` repo on CachyOS,
-  or `noctalia-git` from the AUR elsewhere) or **classic** (Waybar + AGS
-  menus + Hyprbars — deprecated but complete). Stored as `AA_BACKEND`.
-- **Default applications** — the terminal, browser, and file manager launched
-  by the desktop keybindings; the picked apps are installed with `--deps`.
-- **Wallpapers** — copy the bundled set to `~/Pictures/Wallpapers` (never
-  overwrites existing files).
-- **Optional modules** — one multi-select menu (see [Modules](#modules)).
-- **Login screen** (`--deps` only) — install and enable greetd + ReGreet with
-  the theme wallpaper as background, plus an "Aquatic Abyss" session entry
-  that starts Hyprland with this config. Asked only when no display manager
-  is enabled yet; an existing one is always left untouched. Without any
-  display manager the machine boots to a text console.
-
-All choices land in `~/.config/aquatic-abyss/config.env` and can be changed
-there at any time; if that file already exists the installer keeps it and asks
-nothing. Generic shell keybindings fall back to the classic stack
-automatically if the selected backend is not running.
-
-`--plugins` additionally installs the toolchain hyprpm needs to compile
-Hyprland headers and plugins:
-
-```bash
-sudo pacman -S --needed base-devel cmake meson cpio git
-```
-
-If you use `yay` instead of `paru`, the installer will use it automatically.
-
-Packages for optional features (VPN, optional apps, fan control, …) are not in
-the core list — each module ships its own package list and the installer asks
-per module. See [Modules](#modules).
-
-## Rollback
-
-On a Btrfs root the installer offers, before it touches anything, to snapshot
-every subvolume that holds system or user state. CachyOS keeps `/`, `/root`,
-and `/home` in separate subvolumes (`@`, `@root`, `@home`), and restoring `@`
-alone would leave both home directories behind, so each one is snapshotted.
-
-To undo the whole install:
-
-```bash
-sudo aquatic-abyss-rollback --dry-run   # show exactly what would happen
-sudo aquatic-abyss-rollback             # restore and reboot
-```
-
-The snapshots are read-only copies stored at the Btrfs top level, outside
-every subvolume, so they survive the rollback itself. Restoring renames the
-current subvolumes aside and puts the snapshots back under the original
-names — the same mechanism `snapper rollback` uses, and the reason a reboot
-is required. If a step fails partway, the script puts the original
-subvolumes back rather than leaving a half-restored system.
-
-Not included: `/var/log` and `/var/cache` (separate subvolumes on CachyOS),
-so test logs and downloaded packages survive a rollback. The replaced
-subvolumes are kept as `*.pre-rollback-<timestamp>` and removed on the next
-rollback; the final output shows how to delete the rollback point itself.
-
-The offer is skipped, with the reason printed, when a rollback could not be
-made to work — a non-Btrfs root, or fstab/kernel command line pinning
-subvolumes by id rather than by name, which would keep booting the old
-subvolume after a swap.
-
-## Uninstall
-
-The installer symlinks config directories into `~/.config` and backs up
-whatever was there before to `~/.config/hypr_backup_<timestamp>`. To uninstall:
-remove the symlinks in `~/.config` (`hypr`, `ags`, `waybar`, and the other
-directories listed in `install.sh`), restore the backup directory if you want
-your old config back, and delete the cloned repository. Installed packages and
-any `/etc/sudoers.d/zz-aquatic-*` files can be removed with your package
-manager and `sudo rm` respectively. If the installer set up the login screen,
-also remove `/etc/greetd/config.toml` + `regreet.toml`,
-`/usr/local/bin/aquatic-abyss-session`,
-`/usr/share/wayland-sessions/aquatic-abyss.desktop`,
-`/usr/share/backgrounds/aquatic-abyss/`, and run
-`sudo systemctl disable greetd` before uninstalling the packages.
-
-## User configuration
-
-App choices are not hardcoded. Defaults live in `config/defaults.env`; to
-override them, copy that file to `~/.config/aquatic-abyss/config.env` (the
-installer offers to do this) and edit:
-
-```bash
-AA_BACKEND="noctalia"
-AA_TERMINAL="kitty"
-AA_BROWSER="chromium --disable-vulkan --ozone-platform=wayland"
-AA_FILE_MANAGER="nautilus"
-AA_MENU="wofi --show drun"
-AA_IDE="vscodium"
-AA_UPDATE_CMD="cachy-update"
-```
-
-`AA_BACKEND` selects the desktop backend behind the generic shell actions
-(launcher, notifications, control centre, wallpaper, OSD, lock, session UI).
-Keybindings and bar buttons call the `scripts/aa/aa-*` wrapper commands, and
-the wrappers dispatch to the selected backend. Two backends exist: `noctalia`
-(the Noctalia shell, the default — requires the `noctalia` package, or
-`noctalia-git` from the AUR on distros whose repos lack it; config in
-`.config/noctalia/`) and `classic` (the Waybar/wofi/swaync/AGS stack,
-deprecated but complete). The
-startup in `hyprland.lua` launches the matching stack. Unknown values, and
-any Noctalia call that fails at runtime, fall back to classic with a warning.
-
-Machine-specific module settings (VPN accounts, Bluetooth devices) also live
-under `~/.config/aquatic-abyss/` — see each module's README and `.env.example`.
-Nothing personal ever needs to be committed to this repository.
-
-## Modules
-
-Optional features live in `modules/` and are discovered dynamically —
-menu rows, keybinds, packages, and sudoers rules all ship inside the module
-directory. The rule is **hidden, not broken**: a module that cannot work on
-your machine (missing tool, missing hardware, missing configuration) simply
-does not appear in any menu, instead of showing a dead button.
-
-| Module | What it does | Appears when |
-| :--- | :--- | :--- |
-| `wifi` | WiFi network picker (`SUPER + SHIFT + W`) | a WiFi interface exists |
-| `vpn-tailscale` | VPN/Tailscale picker (`SUPER + SHIFT + V`) | `tailscale` or a NetworkManager VPN profile exists |
-| `framework-fan` | Fan control row (ChromeOS-EC laptops, e.g. Framework) | `/dev/cros_ec` + `ectool` exist |
-| `bt-soundbar` | One-key Bluetooth speaker toggle (`SUPER + SHIFT + B`) | `bluetoothctl`, an adapter, **and** a configured device exist |
-| `apps-extra` | Keybinds for optional apps (Element, Joplin, Signal) | always listed; each bind registers only if its app is installed |
-
-`bt-soundbar` requires one-time configuration: copy
-`modules/bt-soundbar/bt-soundbar.env.example` to
-`~/.config/aquatic-abyss/bt-soundbar.env` and set your paired device's MAC
-address. Until then the module stays hidden.
-
-To write your own module, read [`modules/README.md`](modules/README.md) — a
-module is one directory with a small `module.sh` CLI, and menus pick it up on
-their next open without restarting anything.
+For a step-by-step walkthrough on a fresh machine, the full list of installer
+options, and what each package is for, see
+**[docs/manuals/INSTALL.md](docs/manuals/INSTALL.md)**.
 
 ## Keybindings
 
 `SUPER + key` opens applications and manages windows; `SUPER + SHIFT + key`
-controls Aquatic Abyss panels, services, and hardware integrations (see
-[docs/KEYBINDING-REVIEW.md](docs/KEYBINDING-REVIEW.md) for the full scheme).
+controls Aquatic Abyss panels, services, and hardware integrations.
 
 | Key | Action |
 | :--- | :--- |
@@ -274,71 +79,67 @@ controls Aquatic Abyss panels, services, and hardware integrations (see
 | `PRINT` | Screenshot region |
 | `SHIFT + PRINT` | Screenshot window |
 
-`SUPER + RETURN`, `+ B`, `+ E`, `+ I`, and `+ SPACE` honor your
-[user configuration](#user-configuration). Additional keybinds come from
-[modules](#modules): `SUPER + SHIFT + B` toggles the Bluetooth soundbar once
-configured, `SUPER + SHIFT + W` / `+ V` open the WiFi and VPN pickers, and
-`apps-extra` binds optional apps only when installed.
+Press `SUPER + H` at any time for the on-screen shortcut overlay.
 
-### Shortcut Overlay
+`SUPER + RETURN`, `+ B`, `+ E`, `+ I`, and `+ SPACE` launch whichever apps you
+configured — see [configuration](docs/manuals/CONFIGURATION.md). Additional
+keybinds come from [modules](docs/manuals/MODULES.md): `SUPER + SHIFT + W` and
+`+ V` open the WiFi and VPN pickers, `SUPER + SHIFT + B` toggles a Bluetooth
+soundbar once configured, and optional apps bind only when installed.
 
-Press `SUPER + H` to toggle the centered shortcut overlay. It runs as an AGS layer-shell overlay via `scripts/shortcut-overlay.sh`, so it appears above current windows without taking a workspace or becoming a tiled app window. Press `SUPER + H` again, `Esc`, or the close button to hide it.
+## Documentation
 
-Shortcut data is maintained in `.config/ags/shortcut-overlay.json`. Add or edit entries by changing the relevant section object:
+| Manual | Contents |
+| :--- | :--- |
+| [Installation](docs/manuals/INSTALL.md) | Fresh-machine walkthrough, installer options, packages, post-install checks |
+| [Configuration](docs/manuals/CONFIGURATION.md) | `config.env`, app choices, desktop backends, shortcut overlay |
+| [Modules](docs/manuals/MODULES.md) | Optional features, how to enable and configure them, writing your own |
+| [Wallpapers](docs/manuals/WALLPAPER.md) | Wallpaper directory, picker, rotation, fallbacks |
+| [Rollback](docs/manuals/ROLLBACK.md) | Undoing the whole install from a Btrfs snapshot |
+| [Uninstall](docs/manuals/UNINSTALL.md) | Removing the config, packages, and login screen |
 
-```json
-{ "key": "SUPER + Example", "action": "Describe the action" }
-```
+## Security, privacy & disclaimer
 
-The view and styling live in `.config/ags/shortcut-overlay.tsx` and `.config/ags/shortcut-overlay.css`. Dependencies are the existing AGS stack used by the other popups; no additional package is required beyond the configured `aylurs-gtk-shell` dependency.
+Aquatic Abyss is a personal open-source project, shared in the hope that it is
+useful to others. Please read this section before installing it.
 
-## Wallpaper
+**How it is built.** Development is AI-assisted ("vibe coding"): large parts of
+the code and documentation are drafted by an AI coding agent, then reviewed and
+functionally tested by a human maintainer before release. That workflow is fast
+and honest about its limits — mistakes and bugs can still slip through.
 
-Put personal wallpapers here:
+**What it touches.** The installer installs packages, symlinks configuration
+directories into `~/.config`, and — for some optional modules — writes
+`sudoers` rules and enables system services. It is a shell script you can read
+end to end before running it, and you are encouraged to do exactly that rather
+than piping an unknown script into `bash`. Every prompt is opt-in, and existing
+configuration is backed up to `~/.config/hypr_backup_<timestamp>` rather than
+overwritten. On Btrfs systems the installer can take a
+[rollback point](docs/manuals/ROLLBACK.md) before it changes anything.
 
-```bash
-~/Pictures/Wallpapers
-```
+**No AUR required.** A standard installation completes entirely from your
+distribution's own repositories. A few optional extras (automatic monitor
+profiles, and the Noctalia shell on distributions whose repos do not carry it)
+live only in the AUR; the installer offers those separately, defaults to
+**skipping** them, and never builds anything from the AUR without an explicit
+yes.
 
-The quick settings `Wallpaper` button opens an AGS thumbnail picker with:
+**Privacy.** Nothing is phoned home, and no telemetry of any kind is collected.
+The repository ships no personal data: committed configuration contains
+defaults and empty `*.env.example` templates only. Everything
+machine-specific — VPN accounts, Bluetooth device addresses, app
+choices — stays in `~/.config/aquatic-abyss/` on your machine and never needs
+to be committed anywhere. Module `sudoers` rules are installed per-module after
+`visudo -cf` validation as `/etc/sudoers.d/zz-aquatic-<module>` and grant only
+the specific commands that module needs.
 
-- larger image previews in a centered grid
-- active wallpaper highlighting
-- click-to-apply through Hyprpaper
-- random wallpaper action
-- folder shortcut for `~/Pictures/Wallpapers`
+**Disclaimer.** This software is provided "as is", without warranty of any
+kind. The maintainer cannot guarantee that it works on your hardware or
+distribution, and accepts no responsibility for damage, data loss, broken
+systems, or downtime resulting from its use. Review what you install, keep
+backups, and use it at your own risk. See [LICENSE](LICENSE) for the full
+terms.
 
-![AGS wallpaper picker](docs/screenshots/wallpaper-picker-preview.png)
+## License
 
-If no personal wallpaper is selected, the startup script falls back to:
-
-```bash
-/usr/share/hypr
-```
-
-Related mockup:
-
-```bash
-docs/mockups/wallpaper-picker-preview.html
-```
-
-## Validation
-
-Useful checks after editing:
-
-```bash
-luac -p .config/hypr/hyprland.lua modules/*/binds.lua
-Hyprland --verify-config --config .config/hypr/hyprland.lua
-hyprdynamicmonitors validate --config .config/hyprdynamicmonitors/config.toml
-bash -n install.sh scripts/*.sh scripts/lib/*.sh scripts/aa/aa-* modules/*/module.sh
-bash scripts/lib/modules.sh manifest | jq .
-```
-
-## Security & privacy
-
-The repository ships no personal data: committed configuration is defaults and
-empty `*.env.example` templates only, and everything machine-specific belongs
-in `~/.config/aquatic-abyss/` outside the repo. Module sudoers rules are
-installed per-module after `visudo -cf` validation as
-`/etc/sudoers.d/zz-aquatic-<module>` and grant only the specific commands the
-module needs.
+[MIT](LICENSE).
