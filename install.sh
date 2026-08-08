@@ -305,62 +305,374 @@ ui_multichoose() {
     return 0
 }
 
-# Btrfs-only: offer a snapper snapshot before the installer changes anything
-# (runs before ensure_gum, so even the gum install is covered).
-SNAPSHOT_CREATED=0
-SNAPSHOT_NUMBER=""
-SNAPSHOT_DESCRIPTION="Safe state before Aquatic Abyss Install"
+# ---------------------------------------------------------------------------
+# Rollback point (Btrfs only)
+#
+# An install writes packages, symlinks, sudoers rules, greeter config, and
+# user files all over the disk, so replaying individual file changes back
+# (snapper undochange) cannot reliably undo it. Instead every subvolume that
+# holds system or user state is snapshotted before anything is touched, and
+# the generated rollback script swaps those snapshots back in — the same
+# rename-and-reboot mechanism snapper's own rollback uses.
+#
+# CachyOS splits /, /root and /home into separate subvolumes (@, @root,
+# @home), and a rollback of @ alone would leave both home directories
+# behind, so each one is snapshotted separately.
+# ---------------------------------------------------------------------------
 
-offer_snapshot() {
-    [ "$(findmnt -n -o FSTYPE / 2>/dev/null)" = "btrfs" ] || return 0
+ROLLBACK_CREATED=0
+ROLLBACK_DIR=""
+ROLLBACK_SUBVOLUMES=()
+ROLLBACK_BASE="@aquatic-abyss-rollback"
+ROLLBACK_SCRIPT="/usr/local/bin/aquatic-abyss-rollback"
+# Mount points whose subvolumes are restored. Anything not listed here keeps
+# its contents: /var/log (test logs stay readable) and /var/cache (the pacman
+# download cache) hold no state that defines the installed system.
+ROLLBACK_MOUNTPOINTS=(/ /root /home)
 
-    header "Filesystem snapshot" \
-        "The root filesystem is Btrfs — a snapper snapshot lets you roll the system back to the state before this install."
+mount_fsroot() { findmnt -n -o FSROOT --target "$1" 2>/dev/null; }
+mount_uuid() { findmnt -n -o UUID --target "$1" 2>/dev/null; }
+mount_fstype() { findmnt -n -o FSTYPE --target "$1" 2>/dev/null; }
 
-    if ! ui_confirm "Create a snapshot before installing anything?" yes; then
-        echo "Skipping the snapshot."
+# fstab options for a mount point, ignoring comments.
+fstab_options() {
+    awk -v mp="$1" '!/^[[:space:]]*#/ && $2 == mp { print $4 }' /etc/fstab 2>/dev/null
+}
+
+# Prints the subvolumes to snapshot, one per line. A mount point whose
+# subvolume is already listed (/root inside @, say) is skipped: restoring @
+# covers it.
+rollback_subvolumes() {
+    local root_uuid mp fsroot seen=()
+
+    root_uuid="$(mount_uuid /)"
+    for mp in "${ROLLBACK_MOUNTPOINTS[@]}"; do
+        [ -d "$mp" ] || continue
+        [ "$(mount_fstype "$mp")" = "btrfs" ] || continue
+        # Only subvolumes of the root filesystem can be swapped together.
+        [ "$(mount_uuid "$mp")" = "$root_uuid" ] || continue
+
+        fsroot="$(mount_fsroot "$mp")"
+        fsroot="${fsroot#/}"
+        [ -n "$fsroot" ] || continue
+        contains_item "$fsroot" ${seen[@]+"${seen[@]}"} && continue
+        seen+=("$fsroot")
+    done
+
+    printf '%s\n' ${seen[@]+"${seen[@]}"}
+}
+
+# Swapping subvolumes only survives a reboot when the system finds them by
+# name. A subvolid= in fstab or on the kernel command line pins the *old*
+# subvolume, and a non-top-level default subvolume does the same, so both
+# rule the rollback out.
+rollback_blocker() {
+    local mp opts
+
+    command -v btrfs >/dev/null 2>&1 || {
+        echo "btrfs-progs is not installed"
+        return 0
+    }
+
+    if grep -q 'subvolid=' /proc/cmdline 2>/dev/null; then
+        echo "the kernel command line pins a subvolume by id"
         return 0
     fi
 
-    if ! command -v snapper >/dev/null 2>&1; then
-        echo "Installing snapper..."
-        sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} snapper
+    for mp in "${ROLLBACK_MOUNTPOINTS[@]}"; do
+        opts="$(fstab_options "$mp")"
+        [ -n "$opts" ] || continue
+        case "$opts" in
+            *subvolid=*)
+                echo "/etc/fstab mounts $mp by subvolume id"
+                return 0
+                ;;
+            *subvol=*) ;;
+            *)
+                echo "/etc/fstab does not name a subvolume for $mp"
+                return 0
+                ;;
+        esac
+    done
+
+    local default_id
+    default_id="$(sudo btrfs subvolume get-default / 2>/dev/null | awk '{print $2}')"
+    if [ -n "$default_id" ] && [ "$default_id" != "5" ]; then
+        echo "the filesystem has a default subvolume set (id $default_id)"
+        return 0
     fi
 
-    if ! sudo snapper list >/dev/null 2>&1; then
-        echo "No snapper config for / yet; creating one..."
-        if ! sudo snapper -c root create-config /; then
-            echo "Could not set up snapper; continuing without a snapshot." >&2
-            return 0
-        fi
-    fi
-
-    if SNAPSHOT_NUMBER="$(sudo snapper create --type single --print-number \
-        --description "$SNAPSHOT_DESCRIPTION")"; then
-        SNAPSHOT_CREATED=1
-        echo "Snapshot #$SNAPSHOT_NUMBER created."
-    else
-        SNAPSHOT_NUMBER=""
-        echo "Snapshot creation failed; continuing without one." >&2
-    fi
-    return 0
+    return 1
 }
 
-show_snapshot_info() {
-    [ "$SNAPSHOT_CREATED" -eq 1 ] || return 0
+# Asked before the terminal can be reattached (in a piped run bash is still
+# reading the script itself from stdin), so talk to /dev/tty directly.
+rollback_confirm() {
+    local prompt="$1" answer
 
-    local list
-    list="$(sudo snapper list 2>/dev/null)" || return 0
+    if [ "$INTERACTIVE" -eq 1 ]; then
+        ui_confirm "$prompt" yes
+        return $?
+    fi
+
+    # Readable is not enough: in a container /dev/tty can exist but refuse
+    # to open. Default to yes when it does.
+    { : </dev/tty; } 2>/dev/null || return 0
+
+    while true; do
+        printf '%s [Y/n] ' "$prompt" >/dev/tty 2>/dev/null || return 0
+        read -r answer </dev/tty 2>/dev/null || return 0
+        case "${answer,,}" in
+            ""|y|yes) return 0 ;;
+            n|no) return 1 ;;
+            *) printf 'Please answer yes or no.\n' >/dev/tty ;;
+        esac
+    done
+}
+
+write_rollback_script() {
+    local uuid="$1" dir="$2"
+    shift 2
+
+    sudo tee "$ROLLBACK_SCRIPT" >/dev/null <<EOF
+#!/usr/bin/env bash
+# Restore the subvolumes snapshotted before Aquatic Abyss was installed.
+# Generated by install.sh; this copy disappears with the rollback itself.
+# -E matters: without it the ERR trap that undoes a half-finished swap
+# would not fire for failures inside a function.
+set -Eeuo pipefail
+
+FS_UUID="$uuid"
+SNAPSHOT_DIR="$dir"
+SUBVOLUMES=($*)
+EOF
+
+    sudo tee -a "$ROLLBACK_SCRIPT" >/dev/null <<'EOF'
+
+DRY_RUN=0
+ASSUME_YES=0
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=1 ;;
+        -y|--yes) ASSUME_YES=1 ;;
+        -h|--help)
+            echo "Usage: aquatic-abyss-rollback [--dry-run] [-y]"
+            echo "Restores ${SUBVOLUMES[*]} from $SNAPSHOT_DIR and reboots."
+            exit 0
+            ;;
+        *) echo "Unknown option: $arg" >&2; exit 1 ;;
+    esac
+done
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "This must run as root: sudo aquatic-abyss-rollback $*" >&2
+    exit 1
+fi
+
+run() {
+    if [ "$DRY_RUN" -eq 1 ]; then
+        printf 'would run:'
+        printf ' %q' "$@"
+        printf '\n'
+    else
+        "$@"
+    fi
+}
+
+top="$(mktemp -d)"
+cleanup() {
+    if mountpoint -q "$top"; then
+        umount "$top" || true
+    fi
+    rmdir "$top" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# The top level (subvolid=5) holds the subvolumes themselves, so the swap
+# happens there rather than inside any mounted subvolume.
+mount -U "$FS_UUID" -o subvolid=5 "$top"
+
+for sv in "${SUBVOLUMES[@]}"; do
+    if [ ! -d "$top/$SNAPSHOT_DIR/$sv" ]; then
+        echo "Snapshot for $sv is missing under $SNAPSHOT_DIR." >&2
+        echo "Nothing was changed." >&2
+        exit 1
+    fi
+done
+
+echo "Restoring ${SUBVOLUMES[*]} from $SNAPSHOT_DIR"
+echo
+echo "Everything written since the installer ran — packages, configs, and"
+echo "files in the restored home directories — will be gone after the reboot."
+echo
+
+if [ "$DRY_RUN" -eq 0 ] && [ "$ASSUME_YES" -eq 0 ]; then
+    read -r -p "Roll back and reboot now? [y/N] " answer
+    case "${answer,,}" in
+        y|yes) ;;
+        *) echo "Aborted; nothing was changed."; exit 0 ;;
+    esac
+fi
+
+# Replaced subvolumes from an earlier rollback are not in use any more.
+for old in "$top"/*.pre-rollback-*; do
+    [ -e "$old" ] || continue
+    echo "Removing leftover $(basename "$old")"
+    run btrfs subvolume delete "$old" || \
+        echo "  could not delete it; remove it by hand later"
+done
+
+stamp="$(date +%Y%m%d_%H%M%S)"
+
+# A failure halfway through would leave the machine with some subvolumes
+# swapped and others renamed out of the way — the one state that does not
+# boot. Undo whatever was already done before giving up.
+swapped=()
+undo_swaps() {
+    echo "Rollback failed; putting the original subvolumes back." >&2
+    local done_sv
+    for done_sv in ${swapped[@]+"${swapped[@]}"}; do
+        if [ -d "$top/$done_sv" ]; then
+            btrfs subvolume delete "$top/$done_sv" >/dev/null 2>&1 || true
+        fi
+        if [ -d "$top/$done_sv.pre-rollback-$stamp" ]; then
+            mv "$top/$done_sv.pre-rollback-$stamp" "$top/$done_sv" || \
+                echo "  could not restore $done_sv — do NOT reboot; ask for help" >&2
+        fi
+    done
+}
+trap undo_swaps ERR
+
+for sv in "${SUBVOLUMES[@]}"; do
+    echo "Restoring $sv"
+    # Renaming works while the subvolume is mounted: the running system
+    # keeps using it by id until the reboot, and fstab finds the restored
+    # copy under the original name.
+    run mv "$top/$sv" "$top/$sv.pre-rollback-$stamp"
+    swapped+=("$sv")
+    run btrfs subvolume snapshot "$top/$SNAPSHOT_DIR/$sv" "$top/$sv"
+done
+
+trap - ERR
+
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo
+    echo "Dry run only; nothing was changed."
+    exit 0
+fi
+
+echo
+echo "Done. The replaced subvolumes are kept as *.pre-rollback-$stamp and"
+echo "are deleted the next time this script runs. To drop the rollback point"
+echo "itself once the machine is back the way you want it:"
+echo "  mkdir /mnt/btrfs-top && mount -U $FS_UUID -o subvolid=5 /mnt/btrfs-top"
+echo "  btrfs subvolume delete /mnt/btrfs-top/$SNAPSHOT_DIR/*"
+echo "  rm -r /mnt/btrfs-top/$SNAPSHOT_DIR && umount /mnt/btrfs-top"
+echo
+echo "Rebooting in 5 seconds — the restored system comes up after that."
+sleep 5
+systemctl reboot
+EOF
+
+    sudo chmod 755 "$ROLLBACK_SCRIPT"
+}
+
+offer_rollback_point() {
+    # bootstrap_repo re-executes the installer from the clone; the rollback
+    # point belongs to the run as a whole, so it is created once and the
+    # result handed to the second pass.
+    if [ -n "${AQUATIC_ABYSS_ROLLBACK_STATE+x}" ]; then
+        if [ -n "$AQUATIC_ABYSS_ROLLBACK_STATE" ]; then
+            ROLLBACK_DIR="${AQUATIC_ABYSS_ROLLBACK_STATE%%|*}"
+            read -r -a ROLLBACK_SUBVOLUMES <<<"${AQUATIC_ABYSS_ROLLBACK_STATE#*|}"
+            ROLLBACK_CREATED=1
+        fi
+        return 0
+    fi
+
+    export AQUATIC_ABYSS_ROLLBACK_STATE=""
+
+    [ "$(mount_fstype /)" = "btrfs" ] || return 0
+
+    local subvolumes=()
+    mapfile -t subvolumes < <(rollback_subvolumes)
+    [ "${#subvolumes[@]}" -gt 0 ] || return 0
+
+    header "Rollback point" \
+        "The root filesystem is Btrfs. Snapshotting it now makes this install completely reversible: ${subvolumes[*]}."
+
+    local blocker
+    if blocker="$(rollback_blocker)"; then
+        echo "No rollback point: $blocker."
+        echo "The install continues, but it cannot be undone automatically."
+        return 0
+    fi
+
+    if ! rollback_confirm "Create a rollback point before installing anything?"; then
+        echo "Continuing without a rollback point."
+        return 0
+    fi
+
+    local uuid stamp top dir sv
+    uuid="$(mount_uuid /)"
+    stamp="$(date +%Y%m%d_%H%M%S)"
+    dir="$ROLLBACK_BASE/$stamp"
+
+    top="$(mktemp -d)"
+    if ! sudo mount -U "$uuid" -o subvolid=5 "$top"; then
+        rmdir "$top" 2>/dev/null || true
+        echo "Could not open the Btrfs top level; continuing without a rollback point." >&2
+        return 0
+    fi
+
+    local failed=0
+    sudo mkdir -p "$top/$dir"
+    for sv in "${subvolumes[@]}"; do
+        if ! sudo btrfs subvolume snapshot -r "$top/$sv" "$top/$dir/$sv" >/dev/null; then
+            failed=1
+            break
+        fi
+    done
+
+    if [ "$failed" -eq 1 ]; then
+        echo "Snapshot failed; cleaning up and continuing without a rollback point." >&2
+        for sv in "${subvolumes[@]}"; do
+            sudo btrfs subvolume delete "$top/$dir/$sv" >/dev/null 2>&1 || true
+        done
+        sudo rmdir "$top/$dir" 2>/dev/null || true
+        sudo umount "$top" || true
+        rmdir "$top" 2>/dev/null || true
+        return 0
+    fi
+
+    sudo umount "$top"
+    rmdir "$top" 2>/dev/null || true
+
+    write_rollback_script "$uuid" "$dir" "${subvolumes[@]}"
+
+    ROLLBACK_CREATED=1
+    ROLLBACK_DIR="$dir"
+    ROLLBACK_SUBVOLUMES=("${subvolumes[@]}")
+    export AQUATIC_ABYSS_ROLLBACK_STATE="$dir|${subvolumes[*]}"
+
+    echo "Rollback point created: ${subvolumes[*]}"
+}
+
+show_rollback_info() {
+    [ "$ROLLBACK_CREATED" -eq 1 ] || return 0
 
     echo
-    echo "${C_TITLE}==> ${C_BOLD}Pre-install snapshot${C_RESET}"
-    printf '%s\n' "$list" | sed -n '1,2p'
-    printf '%s\n' "$list" | grep -F "$SNAPSHOT_DESCRIPTION" | tail -n 1
+    echo "${C_TITLE}==> ${C_BOLD}Rollback point${C_RESET}"
+    echo "Snapshotted before the install: ${ROLLBACK_SUBVOLUMES[*]}"
+    echo "Stored at: $ROLLBACK_DIR (Btrfs top level)"
     echo
-    echo "To roll the system back to this state later:"
-    echo "  sudo snapper undochange $SNAPSHOT_NUMBER..0"
-    echo "(reverts all file changes made since the snapshot; packages installed"
-    echo "after it disappear from the filesystem, so reboot afterwards)"
+    echo "To put the machine back exactly as it was and reboot:"
+    echo "  sudo aquatic-abyss-rollback"
+    echo "To see what that would do without changing anything:"
+    echo "  sudo aquatic-abyss-rollback --dry-run"
+    echo
+    echo "Kept out of the rollback: /var/log and /var/cache, so test logs and"
+    echo "downloaded packages survive. Everything else returns to this moment."
 }
 
 bootstrap_repo() {
@@ -389,6 +701,8 @@ bootstrap_repo() {
         git -C "$REPO_DIR" pull --ff-only
     fi
 
+    # The banner and the rollback question already happened in this run.
+    export AQUATIC_ABYSS_REEXEC=1
     exec "$REPO_DIR/install.sh" "${ORIGINAL_ARGS[@]}"
 }
 
@@ -531,11 +845,11 @@ install_packages() {
     "$aur_helper" -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${aur_pkgs[@]}"
 }
 
-contains_package() {
-    local needle="$1" pkg
+contains_item() {
+    local needle="$1" item
     shift
-    for pkg in "$@"; do
-        [ "$pkg" = "$needle" ] && return 0
+    for item in "$@"; do
+        [ "$item" = "$needle" ] && return 0
     done
     return 1
 }
@@ -574,7 +888,7 @@ provider_packages() {
         if [ -n "$triggers" ]; then
             needed=0
             for trigger in $triggers; do
-                if contains_package "$trigger" "$@"; then
+                if contains_item "$trigger" "$@"; then
                     needed=1
                     break
                 fi
@@ -1018,9 +1332,11 @@ start_hyprland() {
     echo "Config installed. Log out and start Hyprland from a TTY or display manager."
 }
 
+[ -n "${AQUATIC_ABYSS_REEXEC:-}" ] || print_banner
+# Before bootstrap_repo: cloning the repository and installing git are
+# already changes, and a rollback should undo those too.
+offer_rollback_point
 bootstrap_repo "$@"
-print_banner
-offer_snapshot
 ensure_gum
 ui_init
 choose_backend
@@ -1042,7 +1358,7 @@ if [ "$INSTALL_PLUGINS" -eq 1 ]; then
 fi
 
 # Before start_hyprland: a confirmed reboot would swallow this output.
-show_snapshot_info
+show_rollback_info
 
 if [ "$START_HYPRLAND" -eq 1 ]; then
     start_hyprland

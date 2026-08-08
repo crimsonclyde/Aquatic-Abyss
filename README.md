@@ -100,10 +100,9 @@ it asks the same questions as a local run; only truly headless runs (no
 terminal at all) fall back to the defaults everywhere and never touch the
 AUR. It asks:
 
-- **Filesystem snapshot** (Btrfs roots only, asked first) — create a snapper
-  snapshot ("Safe state before Aquatic Abyss Install") before anything is
-  installed. The end of the run shows the snapshot and the
-  `snapper undochange <N>..0` command that rolls the system back to it.
+- **Rollback point** (Btrfs roots only, asked first) — snapshot the system
+  before anything is installed, so the whole install can be undone. See
+  [Rollback](#rollback).
 - **Desktop shell** — **noctalia** (Quickshell bar, menus, and OSD — the
   default; adds the `noctalia` package — from the `cachyos` repo on CachyOS,
   or `noctalia-git` from the AUR elsewhere) or **classic** (Waybar + AGS
@@ -136,6 +135,37 @@ If you use `yay` instead of `paru`, the installer will use it automatically.
 Packages for optional features (VPN, optional apps, fan control, …) are not in
 the core list — each module ships its own package list and the installer asks
 per module. See [Modules](#modules).
+
+## Rollback
+
+On a Btrfs root the installer offers, before it touches anything, to snapshot
+every subvolume that holds system or user state. CachyOS keeps `/`, `/root`,
+and `/home` in separate subvolumes (`@`, `@root`, `@home`), and restoring `@`
+alone would leave both home directories behind, so each one is snapshotted.
+
+To undo the whole install:
+
+```bash
+sudo aquatic-abyss-rollback --dry-run   # show exactly what would happen
+sudo aquatic-abyss-rollback             # restore and reboot
+```
+
+The snapshots are read-only copies stored at the Btrfs top level, outside
+every subvolume, so they survive the rollback itself. Restoring renames the
+current subvolumes aside and puts the snapshots back under the original
+names — the same mechanism `snapper rollback` uses, and the reason a reboot
+is required. If a step fails partway, the script puts the original
+subvolumes back rather than leaving a half-restored system.
+
+Not included: `/var/log` and `/var/cache` (separate subvolumes on CachyOS),
+so test logs and downloaded packages survive a rollback. The replaced
+subvolumes are kept as `*.pre-rollback-<timestamp>` and removed on the next
+rollback; the final output shows how to delete the rollback point itself.
+
+The offer is skipped, with the reason printed, when a rollback could not be
+made to work — a non-Btrfs root, or fstab/kernel command line pinning
+subvolumes by id rather than by name, which would keep booting the old
+subvolume after a swap.
 
 ## Uninstall
 
