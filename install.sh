@@ -527,6 +527,42 @@ install_packages() {
     "$aur_helper" -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${aur_pkgs[@]}"
 }
 
+contains_package() {
+    local needle="$1" pkg
+    shift
+    for pkg in "$@"; do
+        [ "$pkg" = "$needle" ] && return 0
+    done
+    return 1
+}
+
+# provider_packages <planned pkg>...  -> prints the extra packages to add
+#
+# pacman interrupts an install to ask which package should satisfy a
+# dependency whenever several can. Naming the provider we want up front
+# keeps the run going. `pacman -T` reports a dependency as satisfied (exit
+# 0) when something providing it is already installed, so an existing
+# choice — a KDE user's kwallet, say — is never second-guessed.
+provider_packages() {
+    # ksshaskpass (SSH passphrase prompts, in the core list) needs a Secret
+    # Service daemon; NetworkManager and Chromium use it too. gnome-keyring
+    # is the one that unlocks itself via PAM at login, so secrets are
+    # available without opening anything first — unlike keepassxc, which
+    # only serves secrets while its database is open. kwallet and oo7 stay
+    # unrequested; users who prefer them can install one and rerun.
+    if ! pacman -T org.freedesktop.secrets >/dev/null 2>&1; then
+        echo gnome-keyring
+    fi
+
+    # nautilus pulls localsearch, which needs totem-plparser. Only
+    # totem-pl-parser provides it, but CachyOS and Arch each ship a build,
+    # and pacman treats that as a choice too.
+    if contains_package nautilus "$@" \
+        && ! pacman -T totem-plparser >/dev/null 2>&1; then
+        echo totem-pl-parser
+    fi
+}
+
 install_dependencies() {
     if ! command -v pacman >/dev/null 2>&1; then
         echo "Dependency installation is only automated for Arch/CachyOS systems." >&2
@@ -544,6 +580,10 @@ install_dependencies() {
             wanted+=(noctalia-git)
         fi
     fi
+
+    local providers=()
+    mapfile -t providers < <(provider_packages "${wanted[@]}")
+    wanted+=(${providers[@]+"${providers[@]}"})
 
     install_packages "${wanted[@]}"
 }

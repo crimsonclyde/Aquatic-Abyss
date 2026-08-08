@@ -78,6 +78,15 @@ The terminal, browser, and file manager are not in the core list — the
 installer installs whichever ones you pick (defaults: kitty, chromium,
 nautilus).
 
+Two dependencies can be satisfied by more than one package, which would make
+pacman stop and ask mid-install, so the installer picks for you: a Secret
+Service daemon (needed by `ksshaskpass`, NetworkManager, and Chromium for
+saved passwords) resolves to `gnome-keyring`, which PAM unlocks at login, and
+`totem-plparser` resolves to `totem-pl-parser` when nautilus is installed.
+Neither is touched if something already provides it — install `kwallet`,
+`keepassxc`, or `oo7` yourself beforehand and the installer leaves your
+choice alone.
+
 The installer is interactive (menus via `gum`, plain prompts as fallback).
 The piped `curl | bash` one-liner reattaches your terminal after cloning, so
 it asks the same questions as a local run; only truly headless runs (no
