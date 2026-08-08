@@ -16,7 +16,12 @@ WALLPAPER_TARGET_DIR="$HOME/Pictures/Wallpapers"
 
 INSTALL_DEPS=0
 INSTALL_PLUGINS=0
-START_HYPRLAND=0
+# Unattended mode (--auto): every question answers itself with the value a
+# careful user would pick, and the optional-module menu selects everything
+# available instead of nothing. Deliberately NOT a blanket yes — the AUR
+# question still answers "no" (its default), so an unattended run never builds
+# unreviewed packages, and the closing reboot is never taken without a human.
+AUTO=0
 ORIGINAL_ARGS=("$@")
 
 PACMAN_PACKAGES=(
@@ -81,7 +86,13 @@ Usage: ./install.sh [options]
 Options:
   --deps       Install required Arch/CachyOS packages with pacman and paru/yay.
   --plugins    Install and enable the official Hyprbars plugin with hyprpm.
-  --start      Start Hyprland after installing the config.
+  --auto       Unattended install: implies --deps and --plugins, answers every
+               question with its default, creates the Btrfs rollback point,
+               and enables all available optional modules. Still skips the AUR
+               and never reboots on its own.
+  --start      Deprecated no-op, accepted for compatibility. The installer
+               always finishes by reloading a running Hyprland, or offering a
+               reboot into the login screen when one was set up.
   -h, --help   Show this help.
 
 Environment:
@@ -98,8 +109,14 @@ while [ "$#" -gt 0 ]; do
         --plugins)
             INSTALL_PLUGINS=1
             ;;
+        --auto)
+            AUTO=1
+            INSTALL_DEPS=1
+            INSTALL_PLUGINS=1
+            ;;
         --start)
-            START_HYPRLAND=1
+            # Kept accepted so existing one-liners and scripts do not abort on
+            # "Unknown option". The finishing step is unconditional now.
             ;;
         -h|--help)
             usage
@@ -141,11 +158,18 @@ fi
 USE_GUM=0
 
 # Without a terminal nobody can answer pacman/paru questions; take their
-# defaults instead of stalling or aborting on EOF.
+# defaults instead of stalling or aborting on EOF. --auto wants the same
+# treatment even on a perfectly good terminal.
 PAC_OPTS=()
-if [ "$INTERACTIVE" -eq 0 ]; then
+if [ "$INTERACTIVE" -eq 0 ] || [ "$AUTO" -eq 1 ]; then
     PAC_OPTS=(--noconfirm)
 fi
+
+# True when no question may be put to a human: either there is nobody there,
+# or --auto promised there would be no questions.
+prompts_disabled() {
+    [ "$INTERACTIVE" -eq 0 ] || [ "$AUTO" -eq 1 ]
+}
 
 C_RESET="" C_BOLD="" C_TITLE="" C_DIM=""
 if [ -t 1 ]; then
@@ -194,7 +218,10 @@ ui_confirm() {
     local prompt="$1" default="${2:-no}"
     local hint="[y/N]" answer
 
-    if [ "$INTERACTIVE" -eq 0 ]; then
+    if prompts_disabled; then
+        if [ "$AUTO" -eq 1 ]; then
+            echo "${C_DIM}auto: $prompt -> $default${C_RESET}"
+        fi
         if [ "$default" = "yes" ]; then return 0; else return 1; fi
     fi
 
@@ -233,7 +260,10 @@ ui_choose() {
     shift 2
     local opts=("$@") answer sel i
 
-    if [ "$INTERACTIVE" -eq 0 ]; then
+    if prompts_disabled; then
+        if [ "$AUTO" -eq 1 ]; then
+            echo "${C_DIM}auto: $prompt -> $default${C_RESET}" >&2
+        fi
         echo "$default"
         return 0
     fi
@@ -270,11 +300,23 @@ ui_choose() {
 }
 
 # ui_multichoose <prompt> <option>...   -> prints selected options, one per
-# line; empty selection is valid (and the non-interactive default).
+# line; empty selection is valid (and the headless default).
+#
+# --auto is the one case that selects *everything*: a headless run takes the
+# cautious path and adds nothing, but an unattended install was asked for the
+# full desktop. Selecting a module that cannot work here is harmless — it
+# installs its packages (AUR-only ones are skipped like everywhere else) and
+# then stays hidden from every menu until its hardware or config shows up.
 ui_multichoose() {
     local prompt="$1"
     shift
     local opts=("$@") answer n i
+
+    if [ "$AUTO" -eq 1 ]; then
+        echo "${C_DIM}auto: $prompt -> all (${#opts[@]})${C_RESET}" >&2
+        printf '%s\n' ${opts[@]+"${opts[@]}"}
+        return 0
+    fi
 
     if [ "$INTERACTIVE" -eq 0 ]; then
         return 0
@@ -409,6 +451,14 @@ rollback_blocker() {
 # reading the script itself from stdin), so talk to /dev/tty directly.
 rollback_confirm() {
     local prompt="$1" answer
+
+    # A rollback point is the whole safety net of an unattended install, so
+    # --auto always takes it. This runs before bootstrap_repo re-execs, where
+    # INTERACTIVE is still 0 on a piped run — check AUTO first.
+    if [ "$AUTO" -eq 1 ]; then
+        echo "auto: $prompt -> yes"
+        return 0
+    fi
 
     if [ "$INTERACTIVE" -eq 1 ]; then
         ui_confirm "$prompt" yes
@@ -1153,8 +1203,8 @@ install_modules() {
 }
 
 # Set when a display manager will greet the next boot — either one that was
-# already enabled or the greetd stack this installer sets up. Decides
-# whether --start offers a reboot instead of exec'ing Hyprland raw.
+# already enabled or the greetd stack this installer sets up. Decides whether
+# the finishing step offers a reboot or tells the user to start Hyprland.
 GREETER_ENABLED=0
 
 # Session entry that starts Hyprland with this repo's config. Kept in its
@@ -1306,7 +1356,10 @@ install_plugins() {
     hyprpm reload -n
 }
 
-start_hyprland() {
+# Last step of every run. Never launches the compositor itself — Hyprland
+# upstream advises against starting it from a wrapper script — it only tells
+# the user, or reboots into the login screen, whichever fits the situation.
+finish_session() {
     if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         echo "Hyprland is already running. Reloading config..."
         hyprctl reload
@@ -1315,9 +1368,16 @@ start_hyprland() {
 
     if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
         if [ "$GREETER_ENABLED" -eq 1 ]; then
-            # Hyprland upstream advises against launching from wrapper
-            # scripts; a reboot into the display manager gives a clean
-            # session (logind seat, session environment) instead.
+            # Rebooting is the one thing --auto will not decide for you: the
+            # machine may be doing something else, and "reboot" is not a
+            # keystroke anyone should be able to skip by accident.
+            if [ "$AUTO" -eq 1 ]; then
+                echo "Setup complete. Reboot when ready — the login screen will start Hyprland."
+                return
+            fi
+
+            # A reboot into the display manager gives a clean session (logind
+            # seat, session environment) that a wrapper launch cannot.
             if ui_confirm "Setup complete. Reboot now and log in through the login screen?" yes; then
                 sudo systemctl reboot
                 return
@@ -1357,11 +1417,6 @@ if [ "$INSTALL_PLUGINS" -eq 1 ]; then
     install_plugins
 fi
 
-# Before start_hyprland: a confirmed reboot would swallow this output.
+# Before finish_session: a confirmed reboot would swallow this output.
 show_rollback_info
-
-if [ "$START_HYPRLAND" -eq 1 ]; then
-    start_hyprland
-else
-    echo "Restart Hyprland or run: hyprctl reload"
-fi
+finish_session

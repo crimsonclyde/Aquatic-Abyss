@@ -84,8 +84,9 @@ cd ~/Documents/Repositories/github/Aquatic-Abyss
 
 ## 5. Start Hyprland
 
-If the installer set up the login screen, reboot and pick the **Aquatic Abyss**
-session. Otherwise, from a TTY:
+If the installer set up the login screen, it offers a reboot as its last step —
+accept it and pick the **Aquatic Abyss** session at the login screen.
+Otherwise, from a TTY:
 
 ```bash
 Hyprland
@@ -133,8 +134,54 @@ In an already-running Hyprland session, `hyprctl reload` (or
 | :--- | :--- |
 | `--deps` | Install required packages with `pacman`; anything only the AUR carries is offered as an explicitly confirmed `paru`/`yay` fallback |
 | `--plugins` | Run `hyprpm update`, add `hyprwm/hyprland-plugins`, enable `hyprbars`, and reload plugins. Outside a running Hyprland session (e.g. TTY install) the add/enable half is deferred and runs automatically on first Hyprland start |
-| `--start` | Finish by reloading a running Hyprland; from a TTY with the login screen enabled, offer a reboot into it instead. Optional — the installer never launches Hyprland directly, because starting it from a wrapper script is discouraged upstream |
+| `--auto` | Unattended install — see below |
+| `--start` | Deprecated no-op, still accepted so older one-liners keep working. The finishing step below always runs |
 | `-h`, `--help` | Show installer help |
+
+Every run ends the same way, without needing a flag: a running Hyprland is
+reloaded; on a TTY where the installer set up the login screen you are offered
+a reboot into it; otherwise you are told how to start the desktop. The
+installer never launches Hyprland itself, because starting the compositor from
+a wrapper script is discouraged upstream.
+
+### Unattended install (`--auto`)
+
+If you don't want to answer anything — a test machine, a reinstall, or a
+second box set up exactly like the first — `--auto` runs the whole thing
+without a single prompt:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash -s -- --auto
+```
+
+`--auto` implies `--deps` and `--plugins`, so it is the only flag you need. It
+answers every question with the default that a careful user would pick and
+prints each decision as `auto: <question> -> <answer>`, so the log still shows
+what happened:
+
+| Question | `--auto` answer |
+| :--- | :--- |
+| Rollback point (Btrfs) | **yes** — always taken; it is the safety net for a run nobody is watching |
+| Desktop shell | `noctalia` (the default backend) |
+| Terminal / browser / file manager | kitty, chromium, nautilus |
+| Bundled wallpapers | yes (existing files are never overwritten) |
+| Optional modules | **all of them** |
+| Module sudoers rules | yes |
+| Themed login screen | yes, when no display manager is enabled yet |
+| `pacman` prompts | `--noconfirm` |
+
+Two things `--auto` deliberately does **not** do:
+
+- **It never builds from the AUR.** That question keeps its normal default of
+  *no*, so an unattended run stays repo-only and never compiles unreviewed
+  packages. Anything skipped is printed with the command to add it later.
+- **It never reboots.** Even when it has just set up the login screen, it
+  stops and tells you to reboot when you are ready — an unattended installer
+  should not decide that your machine goes down now.
+
+Selecting every optional module is safe: a module whose hardware, tools, or
+configuration is missing installs quietly and then stays hidden from every
+menu until it can actually work. See [MODULES.md](MODULES.md).
 
 Two environment variables are honoured:
 
