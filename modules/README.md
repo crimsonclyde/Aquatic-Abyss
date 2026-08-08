@@ -1,6 +1,6 @@
 # Modules
 
-Acquatic Abyss extensions live here. A module is just a directory — drop or clone
+Aquatic Abyss extensions live here. A module is just a directory — drop or clone
 a folder into `modules/` and its menu rows, keybinds, and packages are picked up
 automatically. If a module cannot function on the current machine (missing tool,
 missing hardware), it is **hidden from every menu**, never shown broken.

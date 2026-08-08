@@ -1,4 +1,4 @@
-# Passwordless EC fan control for the Acquatic Abyss system stats menu.
+# Passwordless EC fan control for the Aquatic Abyss system stats menu.
 # Installed to /etc/sudoers.d/zz-aquatic-framework-fan (mode 0440).
 # The zz- prefix keeps it after generic %wheel rules (last match wins).
 %wheel ALL=(root) NOPASSWD: /usr/bin/ectool fanduty *, /usr/bin/ectool autofanctrl

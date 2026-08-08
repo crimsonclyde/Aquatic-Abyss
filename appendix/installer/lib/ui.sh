@@ -34,11 +34,11 @@ ui_confirm() {
 
     case "$UI_BACKEND" in
         whiptail)
-            whiptail --title "Acquatic Abyss Installer" --yesno "$prompt" 10 70
+            whiptail --title "Aquatic Abyss Installer" --yesno "$prompt" 10 70
             return $?
             ;;
         dialog)
-            dialog --title "Acquatic Abyss Installer" --yesno "$prompt" 10 70
+            dialog --title "Aquatic Abyss Installer" --yesno "$prompt" 10 70
             return $?
             ;;
     esac
@@ -64,7 +64,7 @@ ui_choose_mode() {
 
     case "$UI_BACKEND" in
         whiptail)
-            choice=$(whiptail --title "Acquatic Abyss Installer" --menu "Choose install mode:" 14 70 3 \
+            choice=$(whiptail --title "Aquatic Abyss Installer" --menu "Choose install mode:" 14 70 3 \
                 "auto" "Automatic install" \
                 "manual" "Manual/custom install" \
                 "dry-run" "Dry run" 3>&1 1>&2 2>&3) || exit 1
@@ -72,7 +72,7 @@ ui_choose_mode() {
             return
             ;;
         dialog)
-            choice=$(dialog --stdout --title "Acquatic Abyss Installer" --menu "Choose install mode:" 14 70 3 \
+            choice=$(dialog --stdout --title "Aquatic Abyss Installer" --menu "Choose install mode:" 14 70 3 \
                 "auto" "Automatic install" \
                 "manual" "Manual/custom install" \
                 "dry-run" "Dry run") || exit 1

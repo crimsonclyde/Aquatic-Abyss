@@ -1,6 +1,6 @@
-# Installing Acquatic Abyss
+# Installing Aquatic Abyss
 
-Acquatic Abyss targets Arch/CachyOS-style systems. This guide walks through a
+Aquatic Abyss targets Arch/CachyOS-style systems. This guide walks through a
 complete installation on a **fresh CachyOS system**, from first login to a
 running Hyprland session. If your machine is already set up and online, jump
 straight to [step 4](#4-install-acquatic-abyss).
@@ -59,20 +59,20 @@ On a fresh installation there are no AUR packages yet, so a full system update
 is safe and quick. If the update pulled in a new kernel, reboot before
 continuing.
 
-## 4. Install Acquatic Abyss
+## 4. Install Aquatic Abyss
 
 One-liner with dependencies, config install, Hyprbars plugin setup, and
 Hyprland start:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Acquatic-Abyss/master/install.sh | bash -s -- --deps --plugins --start
+curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash -s -- --deps --plugins --start
 ```
 
 Or clone manually and run the installer yourself:
 
 ```bash
-git clone https://github.com/crimsonclyde/Acquatic-Abyss.git ~/Documents/Repositories/github/Acquatic-Abyss
-cd ~/Documents/Repositories/github/Acquatic-Abyss
+git clone https://github.com/crimsonclyde/Aquatic-Abyss.git ~/Documents/Repositories/github/Aquatic-Abyss
+cd ~/Documents/Repositories/github/Aquatic-Abyss
 ./install.sh --deps --plugins
 ```
 
@@ -92,7 +92,7 @@ What the installer does:
   repos do not carry are offered as an AUR build (`paru`/`yay`) only after an
   explicit confirmation — skipping them is fine and is the default.
 - Backs up any existing config directories to
-  `~/.config/hypr_backup_<timestamp>`, then symlinks the Acquatic Abyss
+  `~/.config/hypr_backup_<timestamp>`, then symlinks the Aquatic Abyss
   config directories into `~/.config`.
 - Sets up the Hyprbars plugin via `hyprpm` (`--plugins`).
 - Asks per optional module (VPN, fan control, …) whether to install it — each

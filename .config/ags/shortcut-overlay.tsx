@@ -17,7 +17,10 @@ type ShortcutSection = {
 }
 
 const home = GLib.getenv("HOME") ?? ""
-const repo = GLib.getenv("AQUATIC_ABYSS_DIR") ?? `${home}/Documents/Repositories/github/Acquatic-Abyss`
+// Checkouts from before the 2026-08 "Acquatic"→"Aquatic" rename keep the old directory name.
+const defaultRepo = `${home}/Documents/Repositories/github/Aquatic-Abyss`
+const legacyRepo = `${home}/Documents/Repositories/github/Acquatic-Abyss`
+const repo = GLib.getenv("AQUATIC_ABYSS_DIR") ?? (GLib.file_test(defaultRepo, GLib.FileTest.IS_DIR) ? defaultRepo : legacyRepo)
 const dataFile = `${repo}/.config/ags/shortcut-overlay.json`
 const [visible, setVisible] = createState(false)
 

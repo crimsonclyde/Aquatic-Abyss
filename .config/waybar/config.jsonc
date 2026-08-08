@@ -79,7 +79,7 @@
   "custom/power": {
     "format": "⏻",
     "tooltip": false,
-    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/aa/aa-session\"'",
+    "on-click": "bash -lc 'r=\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Aquatic-Abyss}\"; [ -d \"$r\" ] || r=\"$HOME/Documents/Repositories/github/Acquatic-Abyss\"; \"$r/scripts/aa/aa-session\"'",
   },
   "custom/notification": {
     "tooltip": false,
@@ -97,8 +97,8 @@
     "return-type": "json",
     "exec-if": "which swaync-client",
     "exec": "swaync-client -swb",
-    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/aa/aa-notify\" panel'",
-    "on-click-right": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/aa/aa-notify\" dnd'",
+    "on-click": "bash -lc 'r=\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Aquatic-Abyss}\"; [ -d \"$r\" ] || r=\"$HOME/Documents/Repositories/github/Acquatic-Abyss\"; \"$r/scripts/aa/aa-notify\" panel'",
+    "on-click-right": "bash -lc 'r=\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Aquatic-Abyss}\"; [ -d \"$r\" ] || r=\"$HOME/Documents/Repositories/github/Acquatic-Abyss\"; \"$r/scripts/aa/aa-notify\" dnd'",
     "escape": true
   },
 
@@ -106,12 +106,12 @@
     "format": "󰒓",
     "tooltip": true,
     "tooltip-format": "Quick settings",
-    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/quick-settings.sh\" toggle'"
+    "on-click": "bash -lc 'r=\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Aquatic-Abyss}\"; [ -d \"$r\" ] || r=\"$HOME/Documents/Repositories/github/Acquatic-Abyss\"; \"$r/scripts/quick-settings.sh\" toggle'"
   },
   "custom/system_stats": {
     "format": "󰍛",
     "tooltip": true,
     "tooltip-format": "System stats",
-    "on-click": "bash -lc '\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Acquatic-Abyss}/scripts/system-stats.sh\" toggle'"
+    "on-click": "bash -lc 'r=\"${AQUATIC_ABYSS_DIR:-$HOME/Documents/Repositories/github/Aquatic-Abyss}\"; [ -d \"$r\" ] || r=\"$HOME/Documents/Repositories/github/Acquatic-Abyss\"; \"$r/scripts/system-stats.sh\" toggle'"
   }
 }

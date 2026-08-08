@@ -3,7 +3,18 @@
 --------------------------------------------------------------------------------
 
 local home = os.getenv("HOME") or ""
-local repo = os.getenv("AQUATIC_ABYSS_DIR") or (home .. "/Documents/Repositories/github/Acquatic-Abyss")
+-- Checkouts from before the 2026-08 "Acquatic"→"Aquatic" rename keep the old
+-- directory name; probe via io.open (os.execute is broken under Hyprland).
+local repo = os.getenv("AQUATIC_ABYSS_DIR")
+if not repo then
+    repo = home .. "/Documents/Repositories/github/Aquatic-Abyss"
+    local probe = io.open(repo .. "/install.sh", "r")
+    if probe then
+        probe:close()
+    else
+        repo = home .. "/Documents/Repositories/github/Acquatic-Abyss"
+    end
+end
 local hdm_monitors = home .. "/.cache/hyprdynamicmonitors/monitors.conf"
 
 local mainMod = "SUPER"

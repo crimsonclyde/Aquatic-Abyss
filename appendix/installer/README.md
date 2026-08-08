@@ -1,4 +1,4 @@
-# Acquatic Abyss Experimental Installer
+# Aquatic Abyss Experimental Installer
 
 This is a modular replacement candidate for the root `install.sh`. Do not remove the root installer yet.
 

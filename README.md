@@ -1,4 +1,4 @@
-# Acquatic Abyss
+# Aquatic Abyss
 
 An advanced, keyboard-first Hyprland desktop inspired by the deep sea, bioluminescence, and the timeless cosmic horror of the Great Old Ones.
 
@@ -30,20 +30,20 @@ see [INSTALL.md](INSTALL.md).
 One-liner with dependencies, config install, Hyprbars setup, and Hyprland start:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Acquatic-Abyss/master/install.sh | bash -s -- --deps --plugins --start
+curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash -s -- --deps --plugins --start
 ```
 
 Config-only install after dependencies are already present:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Acquatic-Abyss/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/crimsonclyde/Aquatic-Abyss/master/install.sh | bash
 ```
 
 Manual clone:
 
 ```bash
-git clone https://github.com/crimsonclyde/Acquatic-Abyss.git ~/Documents/Repositories/github/Acquatic-Abyss
-cd ~/Documents/Repositories/github/Acquatic-Abyss
+git clone https://github.com/crimsonclyde/Aquatic-Abyss.git ~/Documents/Repositories/github/Aquatic-Abyss
+cd ~/Documents/Repositories/github/Aquatic-Abyss
 ./install.sh --deps --plugins
 ```
 

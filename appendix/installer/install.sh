@@ -224,7 +224,7 @@ main() {
     parse_args "$@"
     ui_init
 
-    ui_title "Acquatic Abyss Experimental Installer"
+    ui_title "Aquatic Abyss Experimental Installer"
     detect_distro
     print_distro_report
 
