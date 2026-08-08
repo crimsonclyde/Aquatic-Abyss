@@ -44,7 +44,12 @@ PACMAN_PACKAGES=(
     gum
 )
 
-AUR_PACKAGES=(
+# Needed by the desktop but not guaranteed to be in the official Arch repos.
+# CachyOS ships waypaper (and noctalia) in its own repository, so these
+# normally install with plain pacman there; whatever the repos do not carry
+# is offered as an explicitly confirmed AUR fallback (install_packages) —
+# the installer never touches the AUR without asking.
+EXTRA_PACKAGES=(
     hyprdynamicmonitors-bin
     waypaper
     aylurs-gtk-shell
@@ -52,11 +57,6 @@ AUR_PACKAGES=(
 
 OPTIONAL_PACKAGES=(
     pavucontrol
-)
-
-# Installed additionally when the noctalia backend is chosen (choose_backend).
-NOCTALIA_AUR_PACKAGES=(
-    noctalia-git
 )
 
 # hyprpm compiles Hyprland headers and plugins from source.
@@ -118,11 +118,28 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 # non-interactive runs (curl | bash) complete without hanging.
 # ---------------------------------------------------------------------------
 
+# curl | bash leaves the pipe on stdin, so neither our prompts nor pacman's
+# [Y/n] questions can be answered from the keyboard. Once the script runs
+# from a file (BASH_SOURCE set — i.e. after bootstrap_repo execs the clone)
+# it is safe to reattach the terminal. The piped first pass must NOT do
+# this: bash is still reading the script itself from stdin. Headless runs
+# (no controlling terminal) keep the pipe and take the defaults.
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ ! -t 0 ] && (: </dev/tty) 2>/dev/null; then
+    exec </dev/tty
+fi
+
 INTERACTIVE=0
 if [ -t 0 ]; then
     INTERACTIVE=1
 fi
 USE_GUM=0
+
+# Without a terminal nobody can answer pacman/paru questions; take their
+# defaults instead of stalling or aborting on EOF.
+PAC_OPTS=()
+if [ "$INTERACTIVE" -eq 0 ]; then
+    PAC_OPTS=(--noconfirm)
+fi
 
 C_RESET="" C_BOLD="" C_TITLE="" C_DIM=""
 if [ -t 1 ]; then
@@ -292,7 +309,7 @@ bootstrap_repo() {
     if ! command -v git >/dev/null 2>&1; then
         if [ "$INSTALL_DEPS" -eq 1 ] && command -v pacman >/dev/null 2>&1; then
             echo "Installing git before cloning..."
-            sudo pacman -S --needed git
+            sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} git
         else
             echo "git is required before this installer can clone $REPO_URL." >&2
             exit 1
@@ -403,35 +420,68 @@ apply_backend_choice() {
     printf 'AA_BACKEND="%s"\n' "$BACKEND_CHOICE" >>"$target"
 }
 
+repo_has() {
+    pacman -Si "$1" >/dev/null 2>&1
+}
+
+# install_packages <pkg>... — installs everything the distro repositories
+# carry with pacman, then asks before building the remainder from the AUR.
+# AUR builds are user-submitted and unreviewed, so nothing is fetched from
+# there without an explicit yes; piped/headless runs skip the AUR entirely.
+install_packages() {
+    local pkg repo_pkgs=() aur_pkgs=() aur_helper
+
+    for pkg in "$@"; do
+        if repo_has "$pkg"; then
+            repo_pkgs+=("$pkg")
+        else
+            aur_pkgs+=("$pkg")
+        fi
+    done
+
+    if [ "${#repo_pkgs[@]}" -gt 0 ]; then
+        echo "Installing packages from the distro repositories..."
+        sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${repo_pkgs[@]}"
+    fi
+
+    [ "${#aur_pkgs[@]}" -gt 0 ] || return 0
+
+    header "AUR fallback" \
+        "Not in the distro repositories: ${aur_pkgs[*]}. AUR builds are user-submitted and unreviewed."
+    if ! ui_confirm "Build these from the AUR? (skipping keeps the install repo-only)" no; then
+        echo "Skipping AUR packages. Install later with: paru -S --needed ${aur_pkgs[*]}"
+        return 0
+    fi
+
+    aur_helper="$(detect_aur_helper)"
+    if [ -z "$aur_helper" ]; then
+        echo "No AUR helper (paru/yay) found. Install these manually: ${aur_pkgs[*]}" >&2
+        return 0
+    fi
+
+    echo "Installing AUR packages with $aur_helper..."
+    "$aur_helper" -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${aur_pkgs[@]}"
+}
+
 install_dependencies() {
     if ! command -v pacman >/dev/null 2>&1; then
         echo "Dependency installation is only automated for Arch/CachyOS systems." >&2
         exit 1
     fi
 
-    echo "Installing pacman packages..."
-    sudo pacman -S --needed "${PACMAN_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}" \
-        ${CHOSEN_APP_PACKAGES[@]+"${CHOSEN_APP_PACKAGES[@]}"}
+    local wanted=("${PACMAN_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}"
+        ${CHOSEN_APP_PACKAGES[@]+"${CHOSEN_APP_PACKAGES[@]}"} "${EXTRA_PACKAGES[@]}")
 
-    local aur_packages=("${AUR_PACKAGES[@]}")
     if [ "$BACKEND_CHOICE" = "noctalia" ]; then
-        aur_packages+=("${NOCTALIA_AUR_PACKAGES[@]}")
+        # CachyOS carries noctalia in its repo; elsewhere the AUR -git build.
+        if repo_has noctalia; then
+            wanted+=(noctalia)
+        else
+            wanted+=(noctalia-git)
+        fi
     fi
 
-    local aur_helper=""
-    if command -v paru >/dev/null 2>&1; then
-        aur_helper="paru"
-    elif command -v yay >/dev/null 2>&1; then
-        aur_helper="yay"
-    fi
-
-    if [ -z "$aur_helper" ]; then
-        echo "No AUR helper found. Install these manually: ${aur_packages[*]}" >&2
-        return
-    fi
-
-    echo "Installing AUR packages with $aur_helper..."
-    "$aur_helper" -S --needed "${aur_packages[@]}"
+    install_packages "${wanted[@]}"
 }
 
 link_config() {
@@ -555,27 +605,19 @@ install_module_packages() {
     local dir="$1"
     local name="$2"
     local packages=()
-    local aur_packages=()
-    local aur_helper
 
     [ "$INSTALL_DEPS" -eq 1 ] || return 0
     command -v pacman >/dev/null 2>&1 || return 0
 
-    mapfile -t packages < <(read_package_list "$dir/packages.arch")
-    mapfile -t aur_packages < <(read_package_list "$dir/packages.aur")
+    # install_packages sorts the combined list into repo vs AUR itself, so
+    # packages.aur entries a distro repo happens to carry stay off the AUR.
+    mapfile -t packages < <(
+        read_package_list "$dir/packages.arch"
+        read_package_list "$dir/packages.aur"
+    )
 
-    if [ "${#packages[@]}" -gt 0 ]; then
-        sudo pacman -S --needed "${packages[@]}"
-    fi
-
-    if [ "${#aur_packages[@]}" -gt 0 ]; then
-        aur_helper="$(detect_aur_helper)"
-        if [ -n "$aur_helper" ]; then
-            "$aur_helper" -S --needed "${aur_packages[@]}"
-        else
-            echo "No AUR helper found. Install these manually for $name: ${aur_packages[*]}" >&2
-        fi
-    fi
+    [ "${#packages[@]}" -gt 0 ] || return 0
+    install_packages "${packages[@]}"
 }
 
 install_module_sudoers() {
@@ -674,7 +716,7 @@ install_plugins() {
     fi
 
     echo "Installing plugin build dependencies..."
-    sudo pacman -S --needed "${PLUGIN_BUILD_PACKAGES[@]}"
+    sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${PLUGIN_BUILD_PACKAGES[@]}"
 
     echo "Updating Hyprland plugin headers..."
     hyprpm update

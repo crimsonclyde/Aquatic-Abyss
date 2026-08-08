@@ -53,7 +53,7 @@ The installer clones or updates the repo, symlinks config directories into `~/.c
 
 | Option | Action |
 | :--- | :--- |
-| `--deps` | Install required packages with `pacman` and AUR packages with `paru` or `yay` |
+| `--deps` | Install required packages with `pacman`; anything only the AUR carries is offered as an explicitly confirmed `paru`/`yay` fallback |
 | `--plugins` | Run `hyprpm update`, add `hyprwm/hyprland-plugins`, enable `hyprbars`, and reload plugins |
 | `--start` | Start Hyprland from a TTY, or reload if Hyprland is already running |
 | `-h`, `--help` | Show installer help |
@@ -62,19 +62,32 @@ Package groups used by `--deps`:
 
 ```bash
 sudo pacman -S --needed hyprland waybar wofi wlogout network-manager-applet blueman brightnessctl pamixer hypridle hyprlock hyprpaper hyprshot swaync upower jq lm_sensors power-profiles-daemon wireplumber cliphist wl-clipboard satty nwg-displays ksshaskpass git base-devel gum pavucontrol
-paru -S --needed hyprdynamicmonitors-bin waypaper aylurs-gtk-shell
 ```
+
+Three more packages (`hyprdynamicmonitors-bin`, `waypaper`,
+`aylurs-gtk-shell`) are not in the official Arch repos everywhere. The
+installer checks your configured repositories first — on CachyOS, `waypaper`
+comes from the `cachyos` repo via plain `pacman` — and only offers what is
+left as an AUR build (`paru`/`yay`), after an explicit confirmation. AUR
+packages are user-submitted and unreviewed, so the default is to skip them;
+the installer prints the command to add them later. Skipping costs the
+automatic monitor profiles (`hyprdynamicmonitors-bin`) and, on the classic
+backend, the AGS menus (`aylurs-gtk-shell`).
 
 The terminal, browser, and file manager are not in the core list — the
 installer installs whichever ones you pick (defaults: kitty, chromium,
 nautilus).
 
-The installer is interactive (menus via `gum`, plain prompts as fallback;
-piped `curl | bash` runs use the defaults everywhere). It asks:
+The installer is interactive (menus via `gum`, plain prompts as fallback).
+The piped `curl | bash` one-liner reattaches your terminal after cloning, so
+it asks the same questions as a local run; only truly headless runs (no
+terminal at all) fall back to the defaults everywhere and never touch the
+AUR. It asks:
 
 - **Desktop shell** — **classic** (Waybar + AGS menus + Hyprbars — deprecated
   but complete, the default) or **noctalia** (Quickshell bar, menus, and OSD —
-  newer, beta; adds the `noctalia-git` AUR package). Stored as `AA_BACKEND`.
+  newer, beta; adds the `noctalia` package — from the `cachyos` repo on
+  CachyOS, or `noctalia-git` from the AUR elsewhere). Stored as `AA_BACKEND`.
 - **Default applications** — the terminal, browser, and file manager launched
   by the desktop keybindings; the picked apps are installed with `--deps`.
 - **Wallpapers** — copy the bundled set to `~/Pictures/Wallpapers` (never
@@ -130,7 +143,8 @@ AA_UPDATE_CMD="cachy-update"
 Keybindings and bar buttons call the `scripts/aa/aa-*` wrapper commands, and
 the wrappers dispatch to the selected backend. Two backends exist: `classic`
 (the Waybar/wofi/swaync/AGS stack) and `noctalia` (the Noctalia shell —
-requires the `noctalia-git` package; config in `.config/noctalia/`). The
+requires the `noctalia` package, or `noctalia-git` from the AUR on distros
+whose repos lack it; config in `.config/noctalia/`). The
 startup in `hyprland.lua` launches the matching stack. Unknown values, and
 any Noctalia call that fails at runtime, fall back to classic with a warning.
 

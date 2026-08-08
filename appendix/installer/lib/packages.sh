@@ -44,6 +44,9 @@ ARCH_DESKTOP_PACKAGES=(
     ksshaskpass
 )
 
+# Preferred from the distro repositories when they carry them (CachyOS ships
+# waypaper in its cachyos repo); install_aur_packages sorts the list at
+# install time and only the true leftovers are offered as AUR builds.
 ARCH_AUR_PACKAGES=(
     hyprdynamicmonitors-bin
     waypaper
@@ -297,9 +300,33 @@ install_packages() {
 }
 
 install_aur_packages() {
-    local aur_helper=""
+    local aur_helper="" pkg repo_pkgs=() aur_pkgs=()
 
     [ "${#AUR_TO_INSTALL[@]}" -gt 0 ] || return
+
+    # Prefer the distro repositories; only what they do not carry is offered
+    # as an AUR build. AUR packages are user-submitted and unreviewed, so
+    # nothing is fetched from there without an explicit yes (auto mode never
+    # asks and therefore stays repo-only).
+    for pkg in "${AUR_TO_INSTALL[@]}"; do
+        if pacman -Si "$pkg" >/dev/null 2>&1; then
+            repo_pkgs+=("$pkg")
+        else
+            aur_pkgs+=("$pkg")
+        fi
+    done
+
+    if [ "${#repo_pkgs[@]}" -gt 0 ]; then
+        sudo pacman -S --needed "${repo_pkgs[@]}" || ui_warn "Package installation failed for: ${repo_pkgs[*]}"
+    fi
+
+    [ "${#aur_pkgs[@]}" -gt 0 ] || return 0
+
+    if [ "$MODE" = "auto" ] || ! ui_confirm "Not in the distro repositories: ${aur_pkgs[*]}. Build these from the AUR (user-submitted, unreviewed)?"; then
+        ui_warn "Skipped AUR packages. Install manually if wanted: ${aur_pkgs[*]}"
+        MANUAL_PACKAGE_NOTES+=("${aur_pkgs[@]}")
+        return 0
+    fi
 
     if command -v paru >/dev/null 2>&1; then
         aur_helper="paru"
@@ -308,12 +335,12 @@ install_aur_packages() {
     fi
 
     if [ -z "$aur_helper" ]; then
-        ui_warn "No AUR helper found. Install manually: ${AUR_TO_INSTALL[*]}"
-        MANUAL_PACKAGE_NOTES+=("${AUR_TO_INSTALL[@]}")
+        ui_warn "No AUR helper found. Install manually: ${aur_pkgs[*]}"
+        MANUAL_PACKAGE_NOTES+=("${aur_pkgs[@]}")
         return
     fi
 
-    "$aur_helper" -S --needed "${AUR_TO_INSTALL[@]}" || ui_warn "AUR package installation failed."
+    "$aur_helper" -S --needed "${aur_pkgs[@]}" || ui_warn "AUR package installation failed."
 
     return 0
 }

@@ -88,8 +88,9 @@ What the installer does:
 - Saves every choice to `~/.config/aquatic-abyss/config.env` — edit that
   file to change anything later; rerunning the installer keeps it.
 - Clones the repository (or updates an existing clone).
-- Installs required packages with `pacman` and AUR packages with `paru` or
-  `yay` (`--deps`).
+- Installs required packages with `pacman` (`--deps`). Packages your distro
+  repos do not carry are offered as an AUR build (`paru`/`yay`) only after an
+  explicit confirmation — skipping them is fine and is the default.
 - Backs up any existing config directories to
   `~/.config/hypr_backup_<timestamp>`, then symlinks the Acquatic Abyss
   config directories into `~/.config`.
