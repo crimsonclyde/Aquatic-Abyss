@@ -695,7 +695,13 @@ install_modules() {
         return 0
     fi
 
-    while IFS= read -r selection_line; do
+    # Loop over an array, not `while read <<<"$selection"`: with the
+    # selection on stdin, pacman's [Y/n] question inside the loop would eat
+    # the remaining selection lines as its answer and skip those modules.
+    local selected_lines=() selection_line
+    mapfile -t selected_lines <<<"$selection"
+
+    for selection_line in "${selected_lines[@]}"; do
         [ -n "$selection_line" ] || continue
         name="${selection_line%% —*}"
         dir="$REPO_DIR/modules/$name/"
@@ -706,7 +712,7 @@ install_modules() {
         install_module_packages "$dir" "$name"
         install_module_sudoers "$dir" "$name"
         run_module_install_hook "$dir" "$name"
-    done <<<"$selection"
+    done
 }
 
 install_plugins() {
