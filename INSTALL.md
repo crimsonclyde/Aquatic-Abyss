@@ -78,7 +78,7 @@ cd ~/Documents/Repositories/github/Aquatic-Abyss
 
 What the installer does:
 
-- Asks which desktop shell backend you want: **noctalia** (newer, beta) or
+- Asks which desktop shell backend you want: **noctalia** (the default) or
   **classic** (Waybar + AGS + Hyprbars, deprecated but complete).
 - Asks which terminal, browser, and file manager the keybindings should
   launch, and installs the ones you pick.

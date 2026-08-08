@@ -84,10 +84,10 @@ it asks the same questions as a local run; only truly headless runs (no
 terminal at all) fall back to the defaults everywhere and never touch the
 AUR. It asks:
 
-- **Desktop shell** — **classic** (Waybar + AGS menus + Hyprbars — deprecated
-  but complete, the default) or **noctalia** (Quickshell bar, menus, and OSD —
-  newer, beta; adds the `noctalia` package — from the `cachyos` repo on
-  CachyOS, or `noctalia-git` from the AUR elsewhere). Stored as `AA_BACKEND`.
+- **Desktop shell** — **noctalia** (Quickshell bar, menus, and OSD — the
+  default; adds the `noctalia` package — from the `cachyos` repo on CachyOS,
+  or `noctalia-git` from the AUR elsewhere) or **classic** (Waybar + AGS
+  menus + Hyprbars — deprecated but complete). Stored as `AA_BACKEND`.
 - **Default applications** — the terminal, browser, and file manager launched
   by the desktop keybindings; the picked apps are installed with `--deps`.
 - **Wallpapers** — copy the bundled set to `~/Pictures/Wallpapers` (never
@@ -139,7 +139,7 @@ override them, copy that file to `~/.config/aquatic-abyss/config.env` (the
 installer offers to do this) and edit:
 
 ```bash
-AA_BACKEND="classic"
+AA_BACKEND="noctalia"
 AA_TERMINAL="kitty"
 AA_BROWSER="chromium --disable-vulkan --ozone-platform=wayland"
 AA_FILE_MANAGER="nautilus"
@@ -151,10 +151,11 @@ AA_UPDATE_CMD="cachy-update"
 `AA_BACKEND` selects the desktop backend behind the generic shell actions
 (launcher, notifications, control centre, wallpaper, OSD, lock, session UI).
 Keybindings and bar buttons call the `scripts/aa/aa-*` wrapper commands, and
-the wrappers dispatch to the selected backend. Two backends exist: `classic`
-(the Waybar/wofi/swaync/AGS stack) and `noctalia` (the Noctalia shell —
-requires the `noctalia` package, or `noctalia-git` from the AUR on distros
-whose repos lack it; config in `.config/noctalia/`). The
+the wrappers dispatch to the selected backend. Two backends exist: `noctalia`
+(the Noctalia shell, the default — requires the `noctalia` package, or
+`noctalia-git` from the AUR on distros whose repos lack it; config in
+`.config/noctalia/`) and `classic` (the Waybar/wofi/swaync/AGS stack,
+deprecated but complete). The
 startup in `hyprland.lua` launches the matching stack. Unknown values, and
 any Noctalia call that fails at runtime, fall back to classic with a warning.
 

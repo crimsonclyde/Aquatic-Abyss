@@ -334,7 +334,7 @@ bootstrap_repo() {
     exec "$REPO_DIR/install.sh" "${ORIGINAL_ARGS[@]}"
 }
 
-BACKEND_CHOICE="classic"
+BACKEND_CHOICE="noctalia"
 
 choose_backend() {
     local user_config="${XDG_CONFIG_HOME:-$HOME/.config}/aquatic-abyss/config.env"
@@ -349,11 +349,11 @@ choose_backend() {
     header "Desktop shell" \
         "The backend draws the bar, menus, and on-screen displays."
 
+    local noctalia_label="noctalia — Quickshell bar, menus, and OSD (default)"
     local classic_label="classic — Waybar + AGS menus + Hyprbars (deprecated but complete)"
-    local noctalia_label="noctalia — Quickshell bar, menus, and OSD (newer, beta)"
     local choice
-    choice="$(ui_choose "Which desktop shell do you want?" "$classic_label" \
-        "$classic_label" "$noctalia_label")"
+    choice="$(ui_choose "Which desktop shell do you want?" "$noctalia_label" \
+        "$noctalia_label" "$classic_label")"
 
     BACKEND_CHOICE="${choice%% *}"
     echo "Using the $BACKEND_CHOICE backend."
@@ -417,8 +417,8 @@ apply_backend_choice() {
         return
     fi
 
-    # No user config and classic chosen: the repo default already applies.
-    if [ "$BACKEND_CHOICE" = "classic" ] && [ ! -f "$target" ]; then
+    # No user config and noctalia chosen: the repo default already applies.
+    if [ "$BACKEND_CHOICE" = "noctalia" ] && [ ! -f "$target" ]; then
         return
     fi
 
@@ -726,6 +726,31 @@ install_modules() {
 # whether --start offers a reboot instead of exec'ing Hyprland raw.
 GREETER_ENABLED=0
 
+# Session entry that starts Hyprland with this repo's config. Kept in its
+# own function so reruns refresh it even when greetd is already enabled.
+install_greeter_session() {
+    # start-hyprland is Hyprland's own watchdog launcher (>= 0.56); starting
+    # the compositor binary directly is discouraged upstream and prints a
+    # warning. Arguments after -- are passed through to Hyprland.
+    sudo tee /usr/local/bin/aquatic-abyss-session >/dev/null <<'EOF'
+#!/usr/bin/env bash
+if command -v start-hyprland >/dev/null 2>&1; then
+    exec start-hyprland -- --config "$HOME/.config/hypr/hyprland.lua"
+fi
+exec Hyprland --config "$HOME/.config/hypr/hyprland.lua"
+EOF
+    sudo chmod 755 /usr/local/bin/aquatic-abyss-session
+
+    sudo tee /usr/share/wayland-sessions/aquatic-abyss.desktop >/dev/null <<'EOF'
+[Desktop Entry]
+Name=Aquatic Abyss
+Comment=Hyprland with the Aquatic Abyss configuration
+Exec=/usr/local/bin/aquatic-abyss-session
+Type=Application
+DesktopNames=Hyprland
+EOF
+}
+
 install_greeter() {
     [ "$INSTALL_DEPS" -eq 1 ] || return 0
     command -v pacman >/dev/null 2>&1 || return 0
@@ -737,7 +762,12 @@ install_greeter() {
         GREETER_ENABLED=1
         local dm_name
         dm_name="$(basename "$(readlink -f "$dm_unit")")"
-        echo "Display manager already enabled ($dm_name); leaving it as is."
+        if [ "$dm_name" = "greetd.service" ]; then
+            echo "greetd already enabled; refreshing the Aquatic Abyss session entry."
+            install_greeter_session
+        else
+            echo "Display manager already enabled ($dm_name); leaving it as is."
+        fi
         return 0
     fi
 
@@ -783,23 +813,24 @@ fit = "Cover"
 application_prefer_dark_theme = true
 EOF
 
-    # The stock hyprland.desktop session launches with the default config
-    # path (hyprland.conf), but this desktop lives in hyprland.lua — ship a
+    # The stock hyprland.desktop session launches the default config path
+    # (hyprland.conf), but this desktop lives in hyprland.lua — ship a
     # session entry that starts Hyprland with the right config.
-    sudo tee /usr/local/bin/aquatic-abyss-session >/dev/null <<'EOF'
-#!/usr/bin/env bash
-exec Hyprland --config "$HOME/.config/hypr/hyprland.lua"
-EOF
-    sudo chmod 755 /usr/local/bin/aquatic-abyss-session
+    install_greeter_session
 
-    sudo tee /usr/share/wayland-sessions/aquatic-abyss.desktop >/dev/null <<'EOF'
-[Desktop Entry]
-Name=Aquatic Abyss
-Comment=Hyprland with the Aquatic Abyss configuration
-Exec=/usr/local/bin/aquatic-abyss-session
-Type=Application
-DesktopNames=Hyprland
+    # Pre-select this user and the Aquatic Abyss session on the first
+    # login; ReGreet keeps the file updated by itself afterwards.
+    local login_user="${USER:-$(id -un)}"
+    if ! sudo test -f /var/lib/regreet/state.toml; then
+        sudo install -d -o greeter -g greeter /var/lib/regreet
+        sudo tee /var/lib/regreet/state.toml >/dev/null <<EOF
+last_user = "$login_user"
+
+[user_to_last_sess]
+"$login_user" = "Aquatic Abyss"
 EOF
+        sudo chown greeter:greeter /var/lib/regreet/state.toml
+    fi
 
     if sudo systemctl enable greetd.service; then
         GREETER_ENABLED=1
