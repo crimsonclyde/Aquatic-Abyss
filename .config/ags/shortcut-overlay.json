@@ -6,6 +6,7 @@
       { "key": "SUPER + B", "action": "Open browser (AA_BROWSER)" },
       { "key": "SUPER + E", "action": "Open file manager (AA_FILE_MANAGER)" },
       { "key": "SUPER + I", "action": "Open IDE (AA_IDE)" },
+      { "key": "SUPER + M", "action": "Open Thunderbird mail (if installed)" },
       { "key": "SUPER + J", "action": "Open Joplin (if installed)" },
       { "key": "SUPER + Y", "action": "Open Signal (if installed)" },
       { "key": "SUPER + X", "action": "Open Element (if installed)" },
@@ -72,8 +73,8 @@
   {
     "title": "Display / monitor rescue",
     "items": [
-      { "key": "SUPER + M", "action": "Open nwg-displays" },
-      { "key": "SUPER + Shift + M", "action": "Disable laptop display eDP-1" },
+      { "key": "SUPER + Shift + M", "action": "Open nwg-displays" },
+      { "key": "SUPER + Ctrl + Shift + M", "action": "Disable laptop display eDP-1" },
       { "key": "SUPER + Ctrl + M", "action": "Restore laptop display eDP-1" },
       { "key": "SUPER + Alt + M", "action": "Re-apply dynamic monitor layout" }
     ]

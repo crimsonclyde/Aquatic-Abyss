@@ -16,7 +16,7 @@ in any menu, instead of showing a dead button.
 | `vpn-tailscale` | VPN/Tailscale picker (`SUPER + SHIFT + V`) | `tailscale` or a NetworkManager VPN profile exists |
 | `framework-fan` | Fan control row (ChromeOS-EC laptops, e.g. Framework) | `/dev/cros_ec` + `ectool` exist |
 | `bt-soundbar` | One-key Bluetooth speaker toggle (`SUPER + SHIFT + B`) | `bluetoothctl`, an adapter, **and** a configured device exist |
-| `apps-extra` | Keybinds for optional apps (Element, Joplin, Signal) | always listed; each bind registers only if its app is installed |
+| `apps-extra` | Keybinds for optional apps (Thunderbird, Element, Joplin, Signal) | always listed; each bind registers only if its app is installed |
 
 Each module has its own `README.md` in `modules/<name>/` describing what it
 needs and what it does.

@@ -208,6 +208,7 @@ hl.config({
         kb_model = "",
         kb_options = "",
         kb_rules = "",
+        numlock_by_default = true,
         follow_mouse = 1,
         sensitivity = 0,
 
@@ -241,9 +242,13 @@ hl.config({
         enabled = true,
     },
 
+    -- smart_split off: dwindle splits along the longer side, so the first
+    -- split on a landscape monitor is always side by side; force_split = 2
+    -- puts the new window right/below instead of following the cursor.
     dwindle = {
         preserve_split = true,
-        smart_split = true,
+        smart_split = false,
+        force_split = 2,
     },
 })
 
@@ -262,7 +267,8 @@ setup_hyprbars()
 -- Keybindings
 --------------------------------------------------------------------------------
 
-hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd(repo .. "/scripts/monitor-control.sh internal-off"))
+hl.bind("SUPER + SHIFT + M", hl.dsp.exec_cmd("nwg-displays"))
+hl.bind("SUPER + CTRL + SHIFT + M", hl.dsp.exec_cmd(repo .. "/scripts/monitor-control.sh internal-off"))
 hl.bind("SUPER + CTRL + M", hl.dsp.exec_cmd(repo .. "/scripts/monitor-control.sh internal-on"))
 hl.bind("SUPER + ALT + M", hl.dsp.exec_cmd(repo .. "/scripts/monitor-control.sh apply"))
 
@@ -270,7 +276,6 @@ hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("nwg-displays"))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + I", hl.dsp.exec_cmd(ide))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))

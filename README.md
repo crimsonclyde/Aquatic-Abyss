@@ -74,8 +74,8 @@ controls Aquatic Abyss panels, services, and hardware integrations.
 | `SUPER + CTRL + Arrow` | Resize window |
 | `SUPER + [0-9]` | Switch workspace |
 | `SUPER + SHIFT + [0-9]` | Move window to workspace |
-| `SUPER + M` | Open nwg-displays |
-| `SUPER + SHIFT/CTRL/ALT + M` | Monitor rescue (internal off / on / re-apply) |
+| `SUPER + SHIFT + M` | Open nwg-displays |
+| `SUPER + CTRL + SHIFT + M` / `CTRL + M` / `ALT + M` | Monitor rescue (internal off / on / re-apply) |
 | `PRINT` | Screenshot region |
 | `SHIFT + PRINT` | Screenshot window |
 
@@ -85,7 +85,8 @@ Press `SUPER + H` at any time for the on-screen shortcut overlay.
 configured — see [configuration](docs/manuals/CONFIGURATION.md). Additional
 keybinds come from [modules](docs/manuals/MODULES.md): `SUPER + SHIFT + W` and
 `+ V` open the WiFi and VPN pickers, `SUPER + SHIFT + B` toggles a Bluetooth
-soundbar once configured, and optional apps bind only when installed.
+soundbar once configured, and optional apps bind only when installed
+(`SUPER + M` opens Thunderbird mail).
 
 ## Documentation
 

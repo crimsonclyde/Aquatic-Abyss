@@ -5,6 +5,7 @@ status — just `binds.lua`.
 
 | Key         | Application               | Registered only if…                |
 | ----------- | ------------------------- | ---------------------------------- |
+| `SUPER + M` | Thunderbird (mail)        | `thunderbird` in PATH              |
 | `SUPER + X` | Element (Matrix client)   | `element-desktop` in PATH          |
 | `SUPER + J` | Joplin                    | `joplin-desktop` in PATH           |
 | `SUPER + Y` | Signal (flatpak)          | flatpak app `org.signal.Signal`    |

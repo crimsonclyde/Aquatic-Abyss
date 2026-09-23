@@ -39,6 +39,7 @@ local function bind_if(present, combo, command)
     end
 end
 
+bind_if(in_path("thunderbird"), "SUPER + M", "thunderbird")
 bind_if(in_path("element-desktop"), "SUPER + X", "element-desktop")
 bind_if(in_path("joplin-desktop"), "SUPER + J", "joplin-desktop")
 bind_if(flatpak_app("org.signal.Signal"), "SUPER + Y", "flatpak run org.signal.Signal")
