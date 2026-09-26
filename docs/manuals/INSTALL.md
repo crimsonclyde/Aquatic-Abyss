@@ -234,11 +234,17 @@ not in the core list either; each module ships its own package list and the
 installer asks per module. See [MODULES.md](MODULES.md).
 
 `--plugins` additionally installs the toolchain `hyprpm` needs to compile
-Hyprland headers and plugins:
+Hyprland headers and plugins, plus `hyprpm` itself when it is missing (since
+`hyprland 0.56.2-3` it is a separate package):
 
 ```bash
-sudo pacman -S --needed base-devel cmake meson cpio git
+sudo pacman -S --needed base-devel cmake meson cpio git hyprpm
 ```
+
+If Hyprbars stops loading after a system upgrade (a "Plugins failed to load"
+notification at login, e.g. `Version mismatch`), rebuild the headers and
+plugins with `hyprpm update -f`. A plain `hyprpm update` can miss a distro
+rebuild that keeps the same Hyprland version.
 
 ### AUR packages are optional
 

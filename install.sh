@@ -1322,13 +1322,22 @@ EOF
 }
 
 install_plugins() {
+    local build_packages=("${PLUGIN_BUILD_PACKAGES[@]}")
+
+    # hyprland 0.56.2-3 split hyprpm into its own package (now only an
+    # optdep). Add it only when the binary is missing: an older hyprland
+    # still ships /usr/bin/hyprpm itself and the two would file-conflict.
     if ! command -v hyprpm >/dev/null 2>&1; then
-        echo "hyprpm is not available. Install Hyprland first, then rerun ./install.sh --plugins." >&2
-        exit 1
+        build_packages+=(hyprpm)
     fi
 
     echo "Installing plugin build dependencies..."
-    sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${PLUGIN_BUILD_PACKAGES[@]}"
+    sudo pacman -S --needed ${PAC_OPTS[@]+"${PAC_OPTS[@]}"} "${build_packages[@]}"
+
+    if ! command -v hyprpm >/dev/null 2>&1; then
+        echo "hyprpm is not available. Install Hyprland and hyprpm first, then rerun ./install.sh --plugins." >&2
+        exit 1
+    fi
 
     # Every hyprpm subcommand — update included, whose final reload/notify
     # step is what dies with "no $HOME or $HYPRLAND_INSTANCE_SIGNATURE" —
